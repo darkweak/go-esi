@@ -1,0 +1,10 @@
+<esi:try> 
+    <esi:attempt>
+        <esi:comment text="Include an ad"/> 
+        <esi:include src="http://www.example.com/ad1.html"/> 
+    </esi:attempt>
+    <esi:except> 
+        <esi:comment text="Just write some HTML instead"/> 
+        <a href="www.akamai.com">www.example.com</a>
+    </esi:except> 
+</esi:try>

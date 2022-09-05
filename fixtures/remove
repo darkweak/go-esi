@@ -1,0 +1,6 @@
+<esi:include src="http://domain.com/chained-esi-include-1"/>
+<esi:remove>
+  <a href="http://www.example.com">www.example.com</a>
+</esi:remove>
+<esi:include src="http://domain.com/chained-esi-include-1"/>
+<esi:include src="http://domain.com/chained-esi-include-1"/>

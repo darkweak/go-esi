@@ -1,0 +1,27 @@
+{
+    debug
+}
+
+:80 {
+    respond 404
+
+    route /chained-esi-include-1 {
+        header Content-Type text/html
+        respond `<esi:include src="http://domain.com/chained-esi-include-2"/>`
+    }
+
+    route /chained-esi-include-2 {
+        header Content-Type text/html
+        respond "<h1>CHAINED 2</h1>"
+    }
+
+    route /esi-include {
+        header Content-Type text/html
+        respond "<h1>ESI INCLUDE</h1>"
+    }
+
+    route /alt-esi-include {
+        header Content-Type text/html
+        respond "<h1>ALTERNATE ESI INCLUDE</h1>"
+    }
+}

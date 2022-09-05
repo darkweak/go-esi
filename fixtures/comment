@@ -1,0 +1,2 @@
+<esi:comment text="the following animation will have a 24 hr TTL." />
+<esi:include src="http://domain.com/chained-esi-include-1" alt=http://domain.com/alt-esi-include/>
