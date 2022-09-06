@@ -1,7 +1,6 @@
 package esi
 
 import (
-	"fmt"
 	"os"
 	"testing"
 )
@@ -17,7 +16,7 @@ func loadFromFixtures(name string) []byte {
 
 var (
 	commentMock = loadFromFixtures("comment")
-	// chooseMock  = loadFromFixtures("choose")
+	chooseMock  = loadFromFixtures("choose")
 	// escapeMock  = loadFromFixtures("escape")
 	includeMock = loadFromFixtures("include")
 	removeMock  = loadFromFixtures("remove")
@@ -26,9 +25,7 @@ var (
 )
 
 func Test_Parse_includeMock(t *testing.T) {
-	fmt.Println(string(commentMock))
-	fmt.Println(string(includeMock))
-	fmt.Println(string(removeMock))
+	// fmt.Println(string(Parse(chooseMock, httptest.NewRequest(http.MethodGet, "/", nil))))
 	// x := Parse(removeMock, httptest.NewRequest(http.MethodGet, "/", nil))
 	// t.Error(string(x))
 }

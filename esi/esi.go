@@ -16,6 +16,9 @@ func findTagName(b []byte) tag {
 			baseTag: newBaseTag(),
 		}
 	case choose:
+		return &chooseTag{
+			baseTag: newBaseTag(),
+		}
 	case escape:
 	case include:
 		return &includeTag{
@@ -30,6 +33,7 @@ func findTagName(b []byte) tag {
 	case vars:
 	case when:
 	default:
+		return nil
 	}
 
 	return nil

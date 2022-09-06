@@ -12,7 +12,7 @@ go get -u github.com/darkweak/go-esi
 ```
 
 ## Roadmap
-- [ ] choose tag
+- [x] choose tag
 - [x] comment tag
 - [ ] escape tag
 - [x] include tag
@@ -20,4 +20,4 @@ go get -u github.com/darkweak/go-esi
 - [ ] otherwise tag
 - [ ] try tag
 - [ ] vars tag
-- [ ] when tag
+- [x] when tag
