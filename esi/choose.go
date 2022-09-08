@@ -1,28 +1,25 @@
 package esi
 
 import (
-	"fmt"
 	"net/http"
 	"regexp"
 )
 
 const (
-	choose = "choose"
+	choose    = "choose"
+	otherwise = "otherwise"
+	when      = "when"
 )
 
 var (
 	closeChoose   = regexp.MustCompile("</esi:choose>")
+	whenRg        = regexp.MustCompile(`(?s)<esi:when test="(.+?)">(.+?)</esi:when>`)
+	otherwiseRg   = regexp.MustCompile(`(?s)<esi:otherwise>(.+?)</esi:otherwise>`)
 	testAttribute = regexp.MustCompile(`test="(.+?)" ?>`)
 )
 
 type chooseTag struct {
 	*baseTag
-}
-
-func matchTestAttribute(b []byte) bool {
-	fmt.Println(string(b))
-
-	return false
 }
 
 // Input (e.g.
@@ -46,25 +43,19 @@ func (c *chooseTag) process(b []byte, req *http.Request) ([]byte, int) {
 	c.length = found[1]
 
 	// first when esi tag
-	tagIdx := esi.FindIndex(b[:found[1]])
-
-	if tagIdx == nil {
-		return []byte{}, len(b)
+	tagIdxs := whenRg.FindAllSubmatch(b, -1)
+	var res []byte
+	for _, v := range tagIdxs {
+		if validateTest(v[1], req) {
+			res = Parse(v[2], req)
+			break
+		}
 	}
 
-	name := tagname.FindSubmatch(b[tagIdx[1]:found[1]])
-	if name == nil || string(name[1]) != "when" {
-		return []byte{}, len(b)
+	tagIdx := otherwiseRg.FindSubmatch(b)
+	if tagIdx != nil {
+		res = Parse(tagIdx[1], req)
 	}
 
-	testAttr := testAttribute.FindSubmatch(b[tagIdx[1]:found[1]])
-	if testAttr == nil {
-		return nil, len(b)
-	}
-
-	matchTestAttribute(testAttr[1])
-
-	// fmt.Println(string(name[1]), string(b[tagIdx[1]:found[1]]))
-
-	return []byte{}, len(b)
+	return res, len(b)
 }

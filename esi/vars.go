@@ -13,11 +13,16 @@ const (
 	httpReferrer       = "HTTP_REFERER"
 	httpUserAgent      = "HTTP_USER_AGENT"
 	httpQueryString    = "QUERY_STRING"
+
+	vars = "vars"
 )
 
 var (
 	interpretedVar   = regexp.MustCompile(`\$\((.+?)(\{(.+)\}(.+)?)?\)`)
 	defaultExtractor = regexp.MustCompile(`\|('|")(.+?)('|")`)
+	stringExtractor  = regexp.MustCompile(`('|")(.+)('|")`)
+
+	closeVars = regexp.MustCompile("</esi:vars>")
 )
 
 func parseVariables(b []byte, req *http.Request) string {
@@ -50,7 +55,32 @@ func parseVariables(b []byte, req *http.Request) string {
 			if len(defaultValues) > 2 {
 				return string(defaultValues[2])
 			}
+
+			return ""
+		}
+	} else {
+		strs := stringExtractor.FindSubmatch(b)
+
+		if len(strs) > 2 {
+			return string(strs[2])
 		}
 	}
 	return string(b)
+}
+
+type varsTag struct {
+	*baseTag
+}
+
+// Input (e.g. comment text="This is a comment." />)
+func (c *varsTag) process(b []byte, req *http.Request) ([]byte, int) {
+	found := closeVars.FindIndex(b)
+	if found == nil {
+		return nil, len(b)
+	}
+	c.length = found[1]
+
+	return interpretedVar.ReplaceAllFunc(b[5:found[0]], func(b []byte) []byte {
+		return []byte(parseVariables(b, req))
+	}), len(b)
 }

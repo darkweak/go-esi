@@ -3,10 +3,7 @@ package esi
 import "regexp"
 
 const (
-	otherwise = "otherwise"
-	try       = "try"
-	vars      = "vars"
-	when      = "when"
+	try = "try"
 )
 
 var (

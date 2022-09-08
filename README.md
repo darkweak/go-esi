@@ -11,13 +11,18 @@ https://www.w3.org/TR/esi-lang/
 go get -u github.com/darkweak/go-esi
 ```
 
-## Roadmap
+## Available as middleware
+- [ ] Caddy
+- [ ] Træfik
+- [ ] Roadrunner
+
+## TODO
 - [x] choose tag
 - [x] comment tag
 - [ ] escape tag
 - [x] include tag
 - [x] remove tag
-- [ ] otherwise tag
+- [x] otherwise tag
 - [ ] try tag
-- [ ] vars tag
+- [x] vars tag
 - [x] when tag

@@ -28,10 +28,11 @@ func findTagName(b []byte) tag {
 		return &removeTag{
 			baseTag: newBaseTag(),
 		}
-	case otherwise:
 	case try:
 	case vars:
-	case when:
+		return &varsTag{
+			baseTag: newBaseTag(),
+		}
 	default:
 		return nil
 	}
