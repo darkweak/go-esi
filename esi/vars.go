@@ -49,6 +49,7 @@ func parseVariables(b []byte, req *http.Request) string {
 				return q
 			}
 		}
+
 		if len(interprets) > 3 {
 			defaultValues := defaultExtractor.FindSubmatch(interprets[4])
 
@@ -65,6 +66,7 @@ func parseVariables(b []byte, req *http.Request) string {
 			return string(strs[2])
 		}
 	}
+
 	return string(b)
 }
 
@@ -72,15 +74,16 @@ type varsTag struct {
 	*baseTag
 }
 
-// Input (e.g. comment text="This is a comment." />)
+// Input (e.g. comment text="This is a comment." />).
 func (c *varsTag) process(b []byte, req *http.Request) ([]byte, int) {
 	found := closeVars.FindIndex(b)
 	if found == nil {
 		return nil, len(b)
 	}
+
 	c.length = found[1]
 
 	return interpretedVar.ReplaceAllFunc(b[5:found[0]], func(b []byte) []byte {
 		return []byte(parseVariables(b, req))
-	}), len(b)
+	}), c.length
 }

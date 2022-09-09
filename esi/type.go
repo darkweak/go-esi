@@ -22,7 +22,7 @@ type (
 )
 
 func newBaseTag() *baseTag {
-	return &baseTag{}
+	return &baseTag{length: 0}
 }
 
 func (b *baseTag) process(content []byte, _ *http.Request) ([]byte, int) {

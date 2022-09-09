@@ -25,6 +25,7 @@ func (i *includeTag) loadAttributes(b []byte) error {
 	if src == nil {
 		return errNotFound
 	}
+
 	i.src = string(src[1])
 
 	alt := altAttribute.FindSubmatch(b)
@@ -38,7 +39,7 @@ func (i *includeTag) loadAttributes(b []byte) error {
 // Input (e.g. include src="https://domain.com/esi-include" alt="https://domain.com/alt-esi-include" />)
 // With or without the alt
 // With or without a space separator before the closing
-// With or without the quotes around the src/alt value
+// With or without the quotes around the src/alt value.
 func (i *includeTag) process(b []byte, req *http.Request) ([]byte, int) {
 	closeIdx := closeInclude.FindIndex(b)
 
@@ -53,14 +54,17 @@ func (i *includeTag) process(b []byte, req *http.Request) ([]byte, int) {
 
 	rq, _ := http.NewRequest(http.MethodGet, i.src, nil)
 	response, err := clientPool.Get().(*http.Client).Do(rq)
+
 	if err != nil || response.StatusCode >= 400 {
 		rq, _ = http.NewRequest(http.MethodGet, i.src, nil)
 		response, err = clientPool.Get().(*http.Client).Do(rq)
+
 		if err != nil || response.StatusCode >= 400 {
 			return nil, len(b)
 		}
 	}
 
+	defer response.Body.Close()
 	x, _ := io.ReadAll(response.Body)
 	b = Parse(x, req)
 

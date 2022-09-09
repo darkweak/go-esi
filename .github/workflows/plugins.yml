@@ -1,0 +1,34 @@
+name: Build and validate go-esi as plugins
+
+on:
+  - pull_request
+
+jobs:
+  build-caddy-validator:
+    name: Check that go-esi build as caddy module
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+      -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Install xcaddy
+        run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+      -
+        name: Build go-esi as caddy module
+        run: cd plugins/caddy && xcaddy build --with github.com/darkweak/go-esi/middleware/caddy=./ --with github.com/darkweak/go-esi@latest=../..
+      -
+        name: Run Caddy tests
+        run: cd plugins/caddy && go test -v ./...
+      -
+        name: Run detached caddy
+        run: cd plugins/caddy && ./caddy run &

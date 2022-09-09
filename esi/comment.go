@@ -13,13 +13,12 @@ type commentTag struct {
 	*baseTag
 }
 
-// Input (e.g. comment text="This is a comment." />)
+// Input (e.g. comment text="This is a comment." />).
 func (c *commentTag) process(b []byte, req *http.Request) ([]byte, int) {
 	found := closeComment.FindIndex(b)
 	if found == nil {
 		return nil, len(b)
 	}
-	c.length = found[1]
 
-	return []byte{}, len(b)
+	return []byte{}, found[1]
 }

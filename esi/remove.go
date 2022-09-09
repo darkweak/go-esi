@@ -18,6 +18,7 @@ func (r *removeTag) process(b []byte, req *http.Request) ([]byte, int) {
 	if closeIdx == nil {
 		return []byte{}, len(b)
 	}
+
 	r.length = closeIdx[1]
 
 	return []byte{}, r.length

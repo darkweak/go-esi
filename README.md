@@ -11,15 +11,37 @@ https://www.w3.org/TR/esi-lang/
 go get -u github.com/darkweak/go-esi
 ```
 
+## Usage
+```go
+import (
+    // ...
+    github.com/darkweak/go-esi/esi
+)
+
+//...
+
+func functionToParseESITags(b []byte, r *http.Request) []byte {
+    // Returns the parsed response.
+    res := esi.Parse(b, r)
+
+    //...
+    return res
+}
+```
+
 ## Available as middleware
-- [ ] Caddy
-- [ ] Træfik
-- [ ] Roadrunner
+- [x] Caddy
+
+### Caddy middleware
+```bash
+xcaddy build --with github.com/darkweak/go-esi/middleware/caddy
+```
+Refer to the [sample Caddyfile](https://github.com/darkweak/go-esi/blob/master/middleware/caddy/Caddyfile) to know how to configure that.
 
 ## TODO
 - [x] choose tag
 - [x] comment tag
-- [ ] escape tag
+- [x] escape tag
 - [x] include tag
 - [x] remove tag
 - [x] otherwise tag

@@ -8,10 +8,7 @@ const (
 
 var (
 	esi     = regexp.MustCompile("<esi:")
-	tagname = regexp.MustCompile("^([a-z]+?)( |>)")
+	tagname = regexp.MustCompile("^(([a-z]+)|(<!--esi))")
 
-	// closeOtherwise = regexp.MustCompile("</esi:otherwise>")
-	// closeTry       = regexp.MustCompile("</esi:try>")
-	// closeVars      = regexp.MustCompile("</esi:vars>")
-	// closeWhen      = regexp.MustCompile("</esi:when>")
+	// closeTry       = regexp.MustCompile("</esi:try>").
 )

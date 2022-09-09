@@ -45,5 +45,6 @@ func validateTest(b []byte, req *http.Request) bool {
 
 		return parseVariables(vars[0], req) == "true"
 	}
+
 	return false
 }
