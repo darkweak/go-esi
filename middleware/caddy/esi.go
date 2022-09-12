@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
@@ -23,10 +22,7 @@ var bufPool *sync.Pool = &sync.Pool{
 func init() {
 	caddy.RegisterModule(ESI{})
 	httpcaddyfile.RegisterGlobalOption("esi", func(h *caddyfile.Dispenser, _ interface{}) (interface{}, error) {
-		return httpcaddyfile.App{
-			Name:  "http.handlers.esi",
-			Value: caddyconfig.JSON(ESI{}, nil),
-		}, nil
+		return &ESI{}, nil
 	})
 	httpcaddyfile.RegisterHandlerDirective("esi", func(h httpcaddyfile.Helper) (caddyhttp.MiddlewareHandler, error) {
 		return &ESI{}, nil
@@ -46,7 +42,10 @@ func (ESI) CaddyModule() caddy.ModuleInfo {
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler
 func (e *ESI) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
-	cw := newWriter(bufPool.Get().(*bytes.Buffer), rw)
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
+	cw := newWriter(buf, rw)
 	next.ServeHTTP(cw, r)
 
 	b := esi.Parse(cw.buf.Bytes(), r)
