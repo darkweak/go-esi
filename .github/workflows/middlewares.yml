@@ -25,10 +25,10 @@ jobs:
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
       -
         name: Build go-esi as caddy module
-        run: cd middlewares/caddy && xcaddy build --with github.com/darkweak/go-esi/middleware/caddy=./ --with github.com/darkweak/go-esi@latest=../..
+        run: cd middleware/caddy && xcaddy build --with github.com/darkweak/go-esi/middleware/caddy=./ --with github.com/darkweak/go-esi@latest=../..
       -
         name: Run Caddy tests
-        run: cd middlewares/caddy && go test -v ./...
+        run: cd middleware/caddy && go test -v ./...
       -
         name: Run detached caddy
-        run: cd middlewares/caddy && ./caddy run &
+        run: cd middleware/caddy && ./caddy run &

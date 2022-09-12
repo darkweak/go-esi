@@ -3,6 +3,18 @@ go-esi
 
 go-esi is the implementation of the non-standard ESI (Edge-Side-Include) specification from the w3. With that you'll be able to use the ESI tags and process them in your favorite golang servers.
 
+## What are the ESI tags
+The ESI tags were introduced by Akamai to add some dynamic tags and only re-render these parts on the server-side.
+The goal of that is to render only specific parts. For example, we want to render a full e-commerce webpage but only the cart is user-dependent. So we could render the "static" parts and store with a predefined TTL (e.g. 60 minutes), and only the cart would be requested to render the block.
+
+There are multiple `esi` tags that we can use but the most used is the `esi:include` because that's the one to request another resource.
+
+We can have many `esi:include` tags in a single response, and each `esi:include` tags can itself have one or more `esi:include` tags.
+![esi page example](https://github.com/darkweak/go-esi/blob/master/docs/esi_2.jpg?sanitize=true)
+
+We can have multiple `esi:include` tags in the page to request another resource and add its content to the main page.
+![esi process example](https://github.com/darkweak/go-esi/blob/master/docs/esi_1.jpg?sanitize=true)
+
 ## References
 https://www.w3.org/TR/esi-lang/
 
