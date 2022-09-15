@@ -45,10 +45,39 @@ func functionToParseESITags(b []byte, r *http.Request) []byte {
 
 ## Available as middleware
 - [x] Caddy
+- [x] Træfik
 
 ### Caddy middleware
 ```bash
 xcaddy build --with github.com/darkweak/go-esi/middleware/caddy
+```
+Refer to the [sample Caddyfile](https://github.com/darkweak/go-esi/blob/master/middleware/caddy/Caddyfile) to know how to configure that.
+
+### Træfik middleware
+```bash
+# anywhere/traefik.yml
+experimental:
+  plugins:
+    souin:
+      moduleName: github.com/darkweak/go-esi
+      version: v0.0.4
+```
+```bash
+# anywhere/dynamic-configuration
+http:
+  routers:
+    whoami:
+      middlewares:
+        - esi
+      service: whoami
+      rule: Host(`domain.com`)
+  middlewares:
+    esi:
+      plugin:
+        esi:
+          # We don't care about the configuration but we have ot declare that block 
+          # due to shitty træfik empty configuration handle.
+          disable: false
 ```
 Refer to the [sample Caddyfile](https://github.com/darkweak/go-esi/blob/master/middleware/caddy/Caddyfile) to know how to configure that.
 

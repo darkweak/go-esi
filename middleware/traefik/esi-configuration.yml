@@ -1,0 +1,24 @@
+http:
+  routers:
+    whoami:
+      middlewares:
+        - esi
+      entrypoints:
+        - http
+      service: whoami
+      rule: Host(`domain.com`)
+
+  services:
+    whoami:
+      loadBalancer:
+        servers:
+          - url: http://whoami
+        passHostHeader: false
+
+  middlewares:
+    esi:
+      plugin:
+        esi:
+          # We don't care about the configuration but we have ot declare that block 
+          # due to shitty træfik empty configuration handle.
+          disable: false

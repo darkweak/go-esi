@@ -1,0 +1,6 @@
+displayName: ESI
+type: middleware
+import: github.com/darkweak/go-esi/middleware/traefik
+summary: 'Pure implementation of the ESI process'
+
+testData: {}
