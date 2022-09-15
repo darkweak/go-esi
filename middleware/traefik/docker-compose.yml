@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../..:/plugins-local/src/github.com/darkweak/go-esi
+      - ./traefik.yml:/traefik.yml
+      - ./esi-configuration.yml:/esi-configuration.yml
+    environment:
+      GOPATH: /plugins-local
+    ports:
+      - 80:80
+      - 8080:8080
+
+  whoami:
+    image: traefik/whoami
+    labels:
+      - traefik.http.routers.whoami.rule=Host(`domain.com`)
