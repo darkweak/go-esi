@@ -4,7 +4,7 @@ import (
 	"net/http"
 )
 
-func findTagName(b []byte) tag {
+func findTagName(b []byte) Tag {
 	name := tagname.FindSubmatch(b)
 	if name == nil {
 		return nil
@@ -43,6 +43,43 @@ func findTagName(b []byte) tag {
 	return nil
 }
 
+func HasOpenedTags(b []byte) bool {
+	return esi.FindIndex(b) != nil || escapeRg.FindIndex(b) != nil
+}
+
+func CanProcess(b []byte) bool {
+	if tag := findTagName(b); tag != nil {
+		return tag.HasClose(b)
+	}
+
+	return false
+}
+
+func ReadToTag(next []byte, pointer int) (startTagPosition, esiPointer int, t Tag) {
+	tagIdx := esi.FindIndex(next)
+	var isEscapeTag bool
+
+	if escIdx := escapeRg.FindIndex(next); escIdx != nil && (tagIdx == nil || escIdx[0] < tagIdx[0]) {
+		tagIdx = escIdx
+		tagIdx[1] = escIdx[0]
+		isEscapeTag = true
+	}
+
+	if tagIdx == nil {
+		return len(next), 0, nil
+	}
+
+	esiPointer = tagIdx[1]
+	startTagPosition = tagIdx[0]
+	t = findTagName(next[esiPointer:])
+
+	if isEscapeTag {
+		esiPointer += 7
+	}
+
+	return
+}
+
 func Parse(b []byte, req *http.Request) []byte {
 	pointer := 0
 
@@ -69,7 +106,7 @@ func Parse(b []byte, req *http.Request) []byte {
 			esiPointer += 7
 		}
 
-		res, p := t.process(next[esiPointer:], req)
+		res, p := t.Process(next[esiPointer:], req)
 		esiPointer += p
 
 		b = append(b[:pointer], append(next[:tagIdx[0]], append(res, next[esiPointer:]...)...)...)

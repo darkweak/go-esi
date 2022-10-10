@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/caddyserver/caddy/v2 v2.5.2
-	github.com/darkweak/go-esi v0.0.4
+	github.com/darkweak/go-esi v0.0.5
 )
 
 require (
@@ -111,4 +111,4 @@ require (
 	howett.net/plist v1.0.0 // indirect
 )
 
-replace github.com/darkweak/go-esi v0.0.4 => ../..
+replace github.com/darkweak/go-esi v0.0.5 => ../..

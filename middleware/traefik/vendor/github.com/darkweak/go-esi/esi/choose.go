@@ -30,7 +30,7 @@ type chooseTag struct {
 //   </esi:otherwise>
 // </esi:choose>
 // ).
-func (c *chooseTag) process(b []byte, req *http.Request) ([]byte, int) {
+func (c *chooseTag) Process(b []byte, req *http.Request) ([]byte, int) {
 	found := closeChoose.FindIndex(b)
 	if found == nil {
 		return nil, len(b)
@@ -55,4 +55,15 @@ func (c *chooseTag) process(b []byte, req *http.Request) ([]byte, int) {
 	}
 
 	return res, c.length
+}
+
+func (*chooseTag) HasClose(b []byte) bool {
+	return closeChoose.FindIndex(b) != nil
+}
+
+func (*chooseTag) GetClosePosition(b []byte) int {
+	if idx := closeChoose.FindIndex(b); idx != nil {
+		return idx[1]
+	}
+	return 0
 }
