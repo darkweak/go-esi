@@ -18,7 +18,4 @@ http:
   middlewares:
     esi:
       plugin:
-        esi:
-          # We don't care about the configuration but we have ot declare that block 
-          # due to shitty træfik empty configuration handle.
-          disable: false
+        esi: {}

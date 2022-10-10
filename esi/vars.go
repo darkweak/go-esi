@@ -75,7 +75,7 @@ type varsTag struct {
 }
 
 // Input (e.g. comment text="This is a comment." />).
-func (c *varsTag) process(b []byte, req *http.Request) ([]byte, int) {
+func (c *varsTag) Process(b []byte, req *http.Request) ([]byte, int) {
 	found := closeVars.FindIndex(b)
 	if found == nil {
 		return nil, len(b)
@@ -86,4 +86,15 @@ func (c *varsTag) process(b []byte, req *http.Request) ([]byte, int) {
 	return interpretedVar.ReplaceAllFunc(b[5:found[0]], func(b []byte) []byte {
 		return []byte(parseVariables(b, req))
 	}), c.length
+}
+
+func (*varsTag) HasClose(b []byte) bool {
+	return closeVars.FindIndex(b) != nil
+}
+
+func (*varsTag) GetClosePosition(b []byte) int {
+	if idx := closeVars.FindIndex(b); idx != nil {
+		return idx[1]
+	}
+	return 0
 }

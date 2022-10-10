@@ -40,7 +40,7 @@ func (i *includeTag) loadAttributes(b []byte) error {
 // With or without the alt
 // With or without a space separator before the closing
 // With or without the quotes around the src/alt value.
-func (i *includeTag) process(b []byte, req *http.Request) ([]byte, int) {
+func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
 	closeIdx := closeInclude.FindIndex(b)
 
 	if closeIdx == nil {
@@ -70,4 +70,15 @@ func (i *includeTag) process(b []byte, req *http.Request) ([]byte, int) {
 	b = Parse(x, req)
 
 	return b, i.length
+}
+
+func (*includeTag) HasClose(b []byte) bool {
+	return closeInclude.FindIndex(b) != nil
+}
+
+func (*includeTag) GetClosePosition(b []byte) int {
+	if idx := closeInclude.FindIndex(b); idx != nil {
+		return idx[1]
+	}
+	return 0
 }

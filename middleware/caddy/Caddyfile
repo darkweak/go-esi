@@ -5,7 +5,7 @@
     esi
 }
 
-:80 {
+localhost:443 {
     route /chained-esi-include-1 {
         header Content-Type text/html
         respond `<esi:include src="http://domain.com/chained-esi-include-2"/>`
@@ -28,8 +28,8 @@
 
     route /* {
         esi
-        
-        root * ../../fixtures
-        file_server
+        reverse_proxy 127.0.0.1:81
+        # root * ../../fixtures
+        # file_server
     }
 }

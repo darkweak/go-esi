@@ -5,8 +5,10 @@ import (
 )
 
 type (
-	tag interface {
-		process([]byte, *http.Request) ([]byte, int)
+	Tag interface {
+		Process([]byte, *http.Request) ([]byte, int)
+		HasClose([]byte) bool
+		GetClosePosition([]byte) int
 	}
 
 	baseTag struct {
@@ -18,6 +20,6 @@ func newBaseTag() *baseTag {
 	return &baseTag{length: 0}
 }
 
-func (b *baseTag) process(content []byte, _ *http.Request) ([]byte, int) {
+func (b *baseTag) Process(content []byte, _ *http.Request) ([]byte, int) {
 	return []byte{}, len(content)
 }
