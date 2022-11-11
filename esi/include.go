@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strings"
 )
 
 const include = "include"
@@ -50,6 +51,12 @@ func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
 	i.length = closeIdx[1]
 	if e := i.loadAttributes(b[8:i.length]); e != nil {
 		return nil, len(b)
+	}
+
+	if strings.HasPrefix(i.src, "//") {
+		i.src = req.URL.Scheme + i.src
+	} else if strings.HasPrefix(i.src, "/") {
+		i.src = req.URL.Scheme + req.URL.Host + i.src
 	}
 
 	rq, _ := http.NewRequest(http.MethodGet, i.src, nil)
