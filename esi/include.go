@@ -3,6 +3,7 @@ package esi
 import (
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 )
 
@@ -36,6 +37,11 @@ func (i *includeTag) loadAttributes(b []byte) error {
 	return nil
 }
 
+func sanitizeURL(u string, reqUrl *url.URL) string {
+	parsed, _ := url.Parse(u)
+	return reqUrl.ResolveReference(parsed).String()
+}
+
 // Input (e.g. include src="https://domain.com/esi-include" alt="https://domain.com/alt-esi-include" />)
 // With or without the alt
 // With or without a space separator before the closing
@@ -52,12 +58,12 @@ func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
 		return nil, len(b)
 	}
 
-	rq, _ := http.NewRequest(http.MethodGet, i.src, nil)
+	rq, _ := http.NewRequest(http.MethodGet, sanitizeURL(i.src, req.URL), nil)
 	client := &http.Client{}
 	response, err := client.Do(rq)
 
 	if err != nil || response.StatusCode >= 400 {
-		rq, _ = http.NewRequest(http.MethodGet, i.src, nil)
+		rq, _ = http.NewRequest(http.MethodGet, sanitizeURL(i.alt, req.URL), nil)
 		response, err = client.Do(rq)
 
 		if err != nil || response.StatusCode >= 400 {

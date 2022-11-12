@@ -1,0 +1,1 @@
+<esi:include src="http://invalid.do.main" alt=http://domain.com:9080/alt-esi-include/>
