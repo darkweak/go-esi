@@ -18,6 +18,18 @@ type Writer struct {
 }
 
 func NewWriter(buf *bytes.Buffer, rw http.ResponseWriter, rq *http.Request) *Writer {
+	if rq.URL.Scheme == "" {
+		if rq.TLS != nil {
+			rq.URL.Scheme = "https"
+		} else {
+			rq.URL.Scheme = "http"
+		}
+	}
+
+	if rq.URL.Host == "" {
+		rq.URL.Host = rq.Host
+	}
+
 	return &Writer{
 		buf:      buf,
 		Rq:       rq,

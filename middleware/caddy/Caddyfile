@@ -1,14 +1,13 @@
 {
     order esi before basicauth
-    admin off
-    debug
+    http_port 9080
     esi
 }
 
-localhost:443 {
+:9080 {
     route /chained-esi-include-1 {
         header Content-Type text/html
-        respond `<esi:include src="http://domain.com/chained-esi-include-2"/>`
+        respond `<esi:include src="/chained-esi-include-2"/>`
     }
 
     route /chained-esi-include-2 {
@@ -28,8 +27,7 @@ localhost:443 {
 
     route /* {
         esi
-        reverse_proxy 127.0.0.1:81
-        # root * ../../fixtures
-        # file_server
+        root * ../../fixtures
+        file_server
     }
 }

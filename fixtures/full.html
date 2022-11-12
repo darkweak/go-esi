@@ -2,14 +2,14 @@
     <head>
         <title><esi:vars>Hello from $(HTTP_HOST)</esi:vars></title>
         <esi:remove>
-            <esi:include src="http://domain.com/chained-esi-include-1" />
+            <esi:include src="http://domain.com:9080/chained-esi-include-1" />
         </esi:remove>
     </head>
     <body>
         <!--esi
         <esi:include src="domain.com/not-interpreted"/>
         -->
-        <esi:include src="http://domain.com/chained-esi-include-1" />
-        <esi:include src="http://domain.com/chained-esi-include-1" />
+        <esi:include src="/chained-esi-include-1" />
+        <esi:include src="http://inexistent.abc/something" alt="//domain.com:9080/alt-esi-include" />
     </body>
 </html>
