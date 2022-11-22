@@ -88,13 +88,21 @@ func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
 	client := &http.Client{}
 	response, err := client.Do(rq)
 
-	if err != nil || response.StatusCode >= 400 {
+	if (err != nil || response.StatusCode >= 400) && i.alt != "" {
 		rq, _ = http.NewRequest(http.MethodGet, sanitizeURL(i.alt, req.URL), nil)
+		addHeaders(headersSafe, req, rq)
+		if rq.URL.Scheme == req.URL.Scheme && rq.URL.Host == req.URL.Host {
+			addHeaders(headersUnsafe, req, rq)
+		}
 		response, err = client.Do(rq)
 
 		if err != nil || response.StatusCode >= 400 {
 			return nil, len(b)
 		}
+	}
+
+	if response == nil {
+		return nil, i.length
 	}
 
 	defer response.Body.Close()
