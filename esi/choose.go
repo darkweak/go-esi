@@ -44,8 +44,7 @@ func (c *chooseTag) Process(b []byte, req *http.Request) ([]byte, int) {
 	for _, v := range tagIdxs {
 		if validateTest(v[1], req) {
 			res = Parse(v[2], req)
-
-			break
+			return res, c.length
 		}
 	}
 

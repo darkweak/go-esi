@@ -19,6 +19,11 @@ const expectedOutput = `<html>
         
         <h1>CHAINED 2</h1>
         <h1>ALTERNATE ESI INCLUDE</h1>
+         
+                <div>
+                    
+                </div>
+            
     </body>
 </html>
 `

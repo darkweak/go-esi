@@ -46,18 +46,14 @@ func (e *ESI) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.
 	defer bufPool.Put(buf)
 	cw := writer.NewWriter(buf, rw, r)
 	go func(w *writer.Writer) {
-		w.Header().Del("Content-Length")
-		if w.Rq.ProtoMajor == 1 {
-			w.Header().Set("Content-Encoding", "chunked")
-		}
 		var i = 0
 		for {
-			if len(cw.AsyncBuf) <= i {
+			if len(w.AsyncBuf) <= i {
 				continue
 			}
-			rs := <-cw.AsyncBuf[i]
+			rs := <-w.AsyncBuf[i]
 			if rs == nil {
-				cw.Done <- true
+				w.Done <- true
 				break
 			}
 			_, _ = rw.Write(rs)
@@ -65,6 +61,10 @@ func (e *ESI) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.
 		}
 	}(cw)
 	next.ServeHTTP(cw, r)
+	cw.Header().Del("Content-Length")
+	if cw.Rq.ProtoMajor == 1 {
+		cw.Header().Set("Content-Encoding", "chunked")
+	}
 	cw.AsyncBuf = append(cw.AsyncBuf, make(chan []byte))
 	go func(w *writer.Writer, iteration int) {
 		w.AsyncBuf[iteration] <- nil
