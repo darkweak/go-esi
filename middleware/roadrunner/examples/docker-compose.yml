@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  roadrunner:
+    build:
+      context: ../../..
+      dockerfile: middleware/roadrunner/examples/Dockerfile.test
+      target: development-runner
+      args:
+        GH_TOKEN: ${GH_APP_TOKEN}
+        CURRENT_SHA: ${CURRENT_SHA}
+    ports:
+      - 80:80
