@@ -16,7 +16,7 @@ jobs:
         name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.18
+          go-version: 1.19
       -
         name: Checkout code
         uses: actions/checkout@v2
@@ -32,3 +32,19 @@ jobs:
       -
         name: Run detached caddy
         run: cd middleware/caddy && ./caddy run &
+
+  build-roadrunner-validator:
+    name: Check that go-esi build as roadrunner middleware
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.19
+      -
+        name: Checkout code
+        uses: actions/checkout@v2
+      -
+        name: Run Roadrunner tests
+        run: cd middleware/roadrunner && go test -v ./...
