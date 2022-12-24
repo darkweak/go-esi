@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -25,21 +26,27 @@ var respond = []byte(`<html>
 `)
 
 func main() {
-	rq, _ := http.NewRequest(http.MethodGet, "domain.com/", nil)
+	rq, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "domain.com/", nil)
 	esi.Parse([]byte{}, rq)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(respond[0:97])
-		w.(http.Flusher).Flush()
-		time.Sleep(3 * time.Second)
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+		time.Sleep(time.Second)
 		_, _ = w.Write(respond[97:194])
-		time.Sleep(3 * time.Second)
+		time.Sleep(time.Second)
 		_, _ = w.Write(respond[194:291])
-		time.Sleep(3 * time.Second)
+		time.Sleep(time.Second)
 		_, _ = w.Write(respond[291:388])
 	})
 
-	_ = http.ListenAndServe(":81", nil)
+	server := &http.Server{
+		Addr:              ":81",
+		ReadHeaderTimeout: 3 * time.Second,
+	}
+	_ = server.ListenAndServe()
 }

@@ -37,5 +37,6 @@ func (*escapeTag) GetClosePosition(b []byte) int {
 	if idx := closeEscape.FindIndex(b); idx != nil {
 		return idx[1]
 	}
+
 	return 0
 }

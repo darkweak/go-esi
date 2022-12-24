@@ -31,5 +31,6 @@ func (*commentTag) GetClosePosition(b []byte) int {
 	if idx := closeComment.FindIndex(b); idx != nil {
 		return idx[1]
 	}
+
 	return 0
 }

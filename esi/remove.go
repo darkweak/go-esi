@@ -32,5 +32,6 @@ func (*removeTag) GetClosePosition(b []byte) int {
 	if idx := closeRemove.FindIndex(b); idx != nil {
 		return idx[1]
 	}
+
 	return 0
 }

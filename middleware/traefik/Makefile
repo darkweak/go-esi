@@ -1,8 +1,11 @@
-.PHONY: build run
+.PHONY: build log run
 
-build: ## Build caddy binary
+build: ## Prepare træfik deps
 	go mod tidy
 	go mod download
 
-run: ## Run caddy with go-esi
-	docker-compose up --remove-orphans
+log: ## Display container logs
+	docker-compose logs -f
+
+run: ## Run træfik with go-esi
+	docker-compose up --remove-orphans --build

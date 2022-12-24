@@ -96,5 +96,6 @@ func (*varsTag) GetClosePosition(b []byte) int {
 	if idx := closeVars.FindIndex(b); idx != nil {
 		return idx[1]
 	}
+
 	return 0
 }

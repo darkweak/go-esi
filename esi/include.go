@@ -1,6 +1,7 @@
 package esi
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/url"
@@ -15,13 +16,13 @@ var (
 	altAttribute = regexp.MustCompile(`alt="?(.+?)"?( |/>)`)
 )
 
-// safe to pass to any origin
+// safe to pass to any origin.
 var headersSafe = []string{
 	"Accept",
 	"Accept-Language",
 }
 
-// safe to pass only to same-origin (same scheme, same host, same port)
+// safe to pass only to same-origin (same scheme, same host, same port).
 var headersUnsafe = []string{
 	"Cookie",
 	"Authorization",
@@ -49,9 +50,10 @@ func (i *includeTag) loadAttributes(b []byte) error {
 	return nil
 }
 
-func sanitizeURL(u string, reqUrl *url.URL) string {
+func sanitizeURL(u string, reqURL *url.URL) string {
 	parsed, _ := url.Parse(u)
-	return reqUrl.ResolveReference(parsed).String()
+
+	return reqURL.ResolveReference(parsed).String()
 }
 
 func addHeaders(headers []string, req *http.Request, rq *http.Request) {
@@ -79,8 +81,9 @@ func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
 		return nil, len(b)
 	}
 
-	rq, _ := http.NewRequest(http.MethodGet, sanitizeURL(i.src, req.URL), nil)
+	rq, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, sanitizeURL(i.src, req.URL), nil)
 	addHeaders(headersSafe, req, rq)
+
 	if rq.URL.Scheme == req.URL.Scheme && rq.URL.Host == req.URL.Host {
 		addHeaders(headersUnsafe, req, rq)
 	}
@@ -89,11 +92,13 @@ func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
 	response, err := client.Do(rq)
 
 	if (err != nil || response.StatusCode >= 400) && i.alt != "" {
-		rq, _ = http.NewRequest(http.MethodGet, sanitizeURL(i.alt, req.URL), nil)
+		rq, _ = http.NewRequestWithContext(context.Background(), http.MethodGet, sanitizeURL(i.alt, req.URL), nil)
 		addHeaders(headersSafe, req, rq)
+
 		if rq.URL.Scheme == req.URL.Scheme && rq.URL.Host == req.URL.Host {
 			addHeaders(headersUnsafe, req, rq)
 		}
+
 		response, err = client.Do(rq)
 
 		if err != nil || response.StatusCode >= 400 {
@@ -120,5 +125,6 @@ func (*includeTag) GetClosePosition(b []byte) int {
 	if idx := closeInclude.FindIndex(b); idx != nil {
 		return idx[1]
 	}
+
 	return 0
 }

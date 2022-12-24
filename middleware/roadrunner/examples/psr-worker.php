@@ -16,12 +16,11 @@ if (file_exists('break')) {
 
 while ($req = $worker->waitRequest()) {
     try {
-        $uri = $_SERVER['REQUEST_URI'];
         $rsp = new Psr7\Response();
-        if ($uri === 'http://localhost/include') {
-            $rsp->getBody()->write('Include content!');
+        if ($_SERVER['REQUEST_URI'] === 'http://localhost/include') {
+            $rsp->getBody()->write('Include content');
         } else {
-            $rsp->getBody()->write('Hello base uri! <esi:include src"/include" />!');
+            $rsp->getBody()->write('Hello base uri! <esi:include src="/include" />!');
         }
 
         $worker->respond($rsp);
