@@ -8,7 +8,7 @@ run-caddy: ## Build and run caddy binary
 	cd middleware/caddy && $(MAKE) build && $(MAKE) run
 
 run-roadrunner: ## Build and run roadrunner
-	cd middleware/caddy && $(MAKE) build && $(MAKE) run
+	cd middleware/roadrunner && $(MAKE) build && $(MAKE) run
 
 run-server: ## Run server main.go
 	go run middleware/server/main.go

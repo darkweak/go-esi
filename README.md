@@ -46,6 +46,7 @@ func functionToParseESITags(b []byte, r *http.Request) []byte {
 ## Available as middleware
 - [x] Caddy
 - [x] Træfik
+- [x] Roadrunner
 
 ### Caddy middleware
 ```bash
@@ -60,7 +61,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/go-esi
-      version: v0.0.5
+      version: v0.0.6
 ```
 ```yaml
 # anywhere/dynamic-configuration
