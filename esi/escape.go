@@ -9,7 +9,8 @@ const escape = "<!--esi"
 
 var (
 	escapeRg    = regexp.MustCompile("<!--esi")
-	closeEscape = regexp.MustCompile("-->")
+	closeEscape = regexp.MustCompile("((\n| +)+)?-->")
+	startEscape = regexp.MustCompile("((\n| +)+)?")
 )
 
 type escapeTag struct {
@@ -23,8 +24,13 @@ func (e *escapeTag) Process(b []byte, req *http.Request) ([]byte, int) {
 		return nil, len(b)
 	}
 
+	startPosition := 0
+	if startIdx := startEscape.FindIndex(b); startIdx != nil {
+		startPosition = startIdx[1]
+	}
+
 	e.length = closeIdx[1]
-	b = b[:closeIdx[0]]
+	b = b[startPosition:closeIdx[0]]
 
 	return b, e.length
 }

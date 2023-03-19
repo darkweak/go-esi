@@ -1,10 +1,10 @@
 {
+    debug
     order esi before basicauth
-    http_port 9080
     esi
 }
 
-:9080 {
+:80 {
     route /chained-esi-include-1 {
         header Content-Type text/html
         respond `<esi:include src="/chained-esi-include-2"/>`

@@ -1,1 +1,1 @@
-<esi:include src="http://domain.com:9080/chained-esi-include-1" alt=http://domain.com:9080/alt-esi-include/>
+<esi:include src="http://domain.com/chained-esi-include-1" alt=http://domain.com/alt-esi-include/>

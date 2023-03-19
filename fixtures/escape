@@ -1,3 +1,3 @@
-<!--esi  
+<!--esi
   <p><esi:vars>Hello, $(HTTP_COOKIE{name})!</esi:vars></p>
 -->

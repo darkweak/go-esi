@@ -7,7 +7,7 @@ import (
 
 const comment = "comment"
 
-var closeComment = regexp.MustCompile("/>")
+var closeComment = regexp.MustCompile("/>((\n| +)+)?")
 
 type commentTag struct {
 	*baseTag

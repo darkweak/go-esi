@@ -1,6 +1,7 @@
 package esi
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
@@ -11,9 +12,10 @@ import (
 const include = "include"
 
 var (
-	closeInclude = regexp.MustCompile("/>")
-	srcAttribute = regexp.MustCompile(`src="?(.+?)"?( |/>)`)
-	altAttribute = regexp.MustCompile(`alt="?(.+?)"?( |/>)`)
+	closeInclude     = regexp.MustCompile("/>")
+	srcAttribute     = regexp.MustCompile(`src="?(.+?)"?( |/>)`)
+	altAttribute     = regexp.MustCompile(`alt="?(.+?)"?( |/>)`)
+	onErrorAttribute = regexp.MustCompile(`onerror="?(.+?)"?( |/>)`)
 )
 
 // safe to pass to any origin.
@@ -30,8 +32,9 @@ var headersUnsafe = []string{
 
 type includeTag struct {
 	*baseTag
-	src string
-	alt string
+	silent bool
+	alt    string
+	src    string
 }
 
 func (i *includeTag) loadAttributes(b []byte) error {
@@ -45,6 +48,11 @@ func (i *includeTag) loadAttributes(b []byte) error {
 	alt := altAttribute.FindSubmatch(b)
 	if alt != nil {
 		i.alt = string(alt[1])
+	}
+
+	onError := onErrorAttribute.FindSubmatch(b)
+	if onError != nil {
+		i.silent = string(onError[1]) == "continue"
 	}
 
 	return nil
@@ -90,6 +98,7 @@ func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
 
 	client := &http.Client{}
 	response, err := client.Do(rq)
+	req = rq
 
 	if (err != nil || response.StatusCode >= 400) && i.alt != "" {
 		rq, _ = http.NewRequestWithContext(context.Background(), http.MethodGet, sanitizeURL(i.alt, req.URL), nil)
@@ -100,8 +109,9 @@ func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
 		}
 
 		response, err = client.Do(rq)
+		req = rq
 
-		if err != nil || response.StatusCode >= 400 {
+		if !i.silent && (err != nil || response.StatusCode >= 400) {
 			return nil, len(b)
 		}
 	}
@@ -110,9 +120,12 @@ func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
 		return nil, i.length
 	}
 
+	var buf bytes.Buffer
+
 	defer response.Body.Close()
-	x, _ := io.ReadAll(response.Body)
-	b = Parse(x, req)
+	_, _ = io.Copy(&buf, response.Body)
+
+	b = Parse(buf.Bytes(), req)
 
 	return b, i.length
 }
