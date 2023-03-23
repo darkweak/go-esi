@@ -2,6 +2,7 @@
     debug
     order esi before basicauth
     esi
+    http_port 9080
 }
 
 :9080 {
