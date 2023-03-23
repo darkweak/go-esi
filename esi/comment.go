@@ -7,7 +7,7 @@ import (
 
 const comment = "comment"
 
-var closeComment = regexp.MustCompile("/>")
+var closeComment = regexp.MustCompile("/>((\n| +)+)?")
 
 type commentTag struct {
 	*baseTag
@@ -31,5 +31,6 @@ func (*commentTag) GetClosePosition(b []byte) int {
 	if idx := closeComment.FindIndex(b); idx != nil {
 		return idx[1]
 	}
+
 	return 0
 }

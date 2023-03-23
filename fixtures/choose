@@ -1,13 +1,13 @@
-<esi:choose> 
-    <esi:when test="$(HTTP_COOKIE{group})=='Advanced'"> 
-        <esi:include src="http://domain.com/chained-esi-include-1"/> 
-    </esi:when> 
+<esi:choose>
+    <esi:when test="$(HTTP_COOKIE{group})=='Advanced'">
+        <esi:include src="http://domain.com:9080/chained-esi-include-1"/>
+    </esi:when>
     <esi:when test="$(HTTP_COOKIE{group})=='Basic User'">
         <esi:include src="https://google.com"/>
-    </esi:when> 
-    <esi:otherwise> 
+    </esi:when>
+    <esi:otherwise>
         <div>
-            <esi:include src="http://domain.com/chained-esi-include-1"/>
+            <esi:include src="http://domain.com:9080/chained-esi-include-1"/>
         </div>
     </esi:otherwise>
 </esi:choose>

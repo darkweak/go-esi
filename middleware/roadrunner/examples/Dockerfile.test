@@ -1,0 +1,29 @@
+FROM ghcr.io/roadrunner-server/velox:latest as velox
+
+ARG CURRENT_SHA
+ARG GH_TOKEN
+ENV CGO_ENABLED=0
+ENV VERSION=v2.12.0
+ENV TIME="$(date +%H:%M)"
+
+RUN apk add git
+
+COPY . /opt
+WORKDIR /opt/middleware/roadrunner
+RUN go get -u "github.com/darkweak/go-esi@${CURRENT_SHA}"
+WORKDIR /opt/middleware/roadrunner/examples
+RUN sed -i "s/GH_TOKEN/${GH_TOKEN}/" configuration.toml
+RUN sed -i "s/CURRENT_SHA/${CURRENT_SHA}/" configuration.toml
+
+RUN vx build -c configuration.toml -o /usr/bin/
+
+FROM composer:latest AS development-runner
+COPY --from=velox /usr/bin/rr /usr/bin/rr
+
+RUN apk add linux-headers
+RUN docker-php-ext-install sockets
+RUN composer require spiral/roadrunner nyholm/psr7
+
+COPY middleware/roadrunner/examples .
+
+CMD ["/usr/bin/rr", "serve"]

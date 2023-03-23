@@ -1,0 +1,20 @@
+[velox]
+build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=v2.12.0 -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=10:00:00']
+
+[roadrunner]
+ref = "v2.12.3"
+
+[github]
+    [github.token]
+    token = "GH_TOKEN"
+
+    [github.plugins]
+    logger = { ref = "v3.2.0", owner = "roadrunner-server", repository = "logger" }
+    esi = { ref = "CURRENT_SHA", owner = "darkweak", repository = "go-esi", folder = "middleware/roadrunner", replace = "/opt/middleware/roadrunner" }
+    server = { ref = "v3.2.0", owner = "roadrunner-server", repository = "server" }
+    gzip = { ref = "v3.2.0", owner = "roadrunner-server", repository = "gzip" }
+    http = { ref = "v3.2.0", owner = "roadrunner-server", repository = "http" }
+
+[log]
+level = "debug"
+mode = "development"

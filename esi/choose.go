@@ -19,15 +19,17 @@ type chooseTag struct {
 
 // Input (e.g.
 // <esi:choose>
-//   <esi:when test="$(HTTP_COOKIE{group})=='Advanced'">
-//       <esi:include src="http://www.example.com/advanced.html"/>
-//   </esi:when>
-//   <esi:when test="$(HTTP_COOKIE{group})=='Basic User'">
-//       <esi:include src="http://www.example.com/basic.html"/>
-//   </esi:when>
-//   <esi:otherwise>
-//       <esi:include src="http://www.example.com/new_user.html"/>
-//   </esi:otherwise>
+//
+//	<esi:when test="$(HTTP_COOKIE{group})=='Advanced'">
+//	    <esi:include src="http://www.example.com/advanced.html"/>
+//	</esi:when>
+//	<esi:when test="$(HTTP_COOKIE{group})=='Basic User'">
+//	    <esi:include src="http://www.example.com/basic.html"/>
+//	</esi:when>
+//	<esi:otherwise>
+//	    <esi:include src="http://www.example.com/new_user.html"/>
+//	</esi:otherwise>
+//
 // </esi:choose>
 // ).
 func (c *chooseTag) Process(b []byte, req *http.Request) ([]byte, int) {
@@ -44,6 +46,7 @@ func (c *chooseTag) Process(b []byte, req *http.Request) ([]byte, int) {
 	for _, v := range tagIdxs {
 		if validateTest(v[1], req) {
 			res = Parse(v[2], req)
+
 			return res, c.length
 		}
 	}
@@ -64,5 +67,6 @@ func (*chooseTag) GetClosePosition(b []byte) int {
 	if idx := closeChoose.FindIndex(b); idx != nil {
 		return idx[1]
 	}
+
 	return 0
 }

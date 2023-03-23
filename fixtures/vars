@@ -1,3 +1,6 @@
 <esi:vars>
-  <img src="http://www.example.com/$(HTTP_COOKIE{type})/hello.gif"/ >
+  <img src="http://www.example.com/$(HTTP_COOKIE{type})/hello.gif" />
+  <img src="http://www.example.com/$(HTTP_COOKIE{does_not_exist}|'default_value')/hello.gif" />
+  <img src="http://www.example.com/$(HTTP_HOST)/hello.gif"/>
+  <img src="http://www.example.com/$(HTTP_ACCEPT_LANGUAGE{en})/hello.gif"/ >
 </esi:vars>

@@ -22,7 +22,7 @@ var (
 	defaultExtractor = regexp.MustCompile(`\|('|")(.+?)('|")`)
 	stringExtractor  = regexp.MustCompile(`('|")(.+)('|")`)
 
-	closeVars = regexp.MustCompile("</esi:vars>")
+	closeVars = regexp.MustCompile("((\n| +)+)?</esi:vars>")
 )
 
 func parseVariables(b []byte, req *http.Request) string {
@@ -33,6 +33,8 @@ func parseVariables(b []byte, req *http.Request) string {
 		case httpAcceptLanguage:
 			if strings.Contains(req.Header.Get("Accept-Language"), string(interprets[3])) {
 				return "true"
+			} else {
+				return "false"
 			}
 		case httpCookie:
 			if c, e := req.Cookie(string(interprets[3])); e == nil && c.Value != "" {
@@ -96,5 +98,6 @@ func (*varsTag) GetClosePosition(b []byte) int {
 	if idx := closeVars.FindIndex(b); idx != nil {
 		return idx[1]
 	}
+
 	return 0
 }

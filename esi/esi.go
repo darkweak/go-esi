@@ -56,8 +56,9 @@ func CanProcess(b []byte) bool {
 }
 
 func ReadToTag(next []byte, pointer int) (startTagPosition, esiPointer int, t Tag) {
-	tagIdx := esi.FindIndex(next)
 	var isEscapeTag bool
+
+	tagIdx := esi.FindIndex(next)
 
 	if escIdx := escapeRg.FindIndex(next); escIdx != nil && (tagIdx == nil || escIdx[0] < tagIdx[0]) {
 		tagIdx = escIdx
