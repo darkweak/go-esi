@@ -54,6 +54,44 @@ xcaddy build --with github.com/darkweak/go-esi/middleware/caddy
 ```
 Refer to the [sample Caddyfile](https://github.com/darkweak/go-esi/blob/master/middleware/caddy/Caddyfile) to know how to use that.
 
+### Roadrunner middleware
+To use the `go-esi` processor as Roadrunner middleware, you just have to follow the steps below.  
+You have to build your `rr` binary with the `go-esi` dependency.
+```toml
+[velox]
+build_args = ['-trimpath', '-ldflags', '-s -X github.com/roadrunner-server/roadrunner/v2/internal/meta.version=v2.12.0 -X github.com/roadrunner-server/roadrunner/v2/internal/meta.buildTime=10:00:00']
+
+[roadrunner]
+ref = "v2.12.3"
+
+[github]
+    [github.token]
+    token = "GH_TOKEN"
+
+    [github.plugins]
+    logger = { ref = "v3.2.0", owner = "roadrunner-server", repository = "logger" }
+    esi = { ref = "master", owner = "darkweak", repository = "go-esi", folder = "middleware/roadrunner", replace = "/opt/middleware/roadrunner" }
+    server = { ref = "v3.2.0", owner = "roadrunner-server", repository = "server" }
+    gzip = { ref = "v3.2.0", owner = "roadrunner-server", repository = "gzip" }
+    http = { ref = "v3.2.0", owner = "roadrunner-server", repository = "http" }
+
+[log]
+level = "debug"
+mode = "development"
+```
+
+After that, you'll be able to set enable and add the esi processor to the middleware chain.
+```yaml
+# .rr.yaml
+http:
+  # Other http sub keys
+  esi: {}
+  middleware:
+    - headers
+    - gzip
+    - esi
+```
+
 ### Træfik middleware
 ```yaml
 # anywhere/traefik.yml

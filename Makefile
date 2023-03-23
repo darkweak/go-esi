@@ -1,5 +1,13 @@
-.PHONY: lint run-caddy run-server run-traefik
+.PHONY: bump-version lint run-caddy run-roadrunner run-server run-traefik vendor
 MIDDLEWARES_LIST=caddy roadrunner server traefik
+
+bump-version:
+	test $(from)
+	test $(to)
+	sed -i '' 's/version: $(from)/version: $(to)/' README.md
+	for middleware in $(MIDDLEWARES_LIST) ; do \
+		sed -i '' 's/github.com\/darkweak\/go-esi $(from)/github.com\/darkweak\/go-esi $(to)/' middleware/$$middleware/go.mod ; \
+	done
 
 lint: ## Run golangci-lint to ensure the code quality
 	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint golangci-lint run
