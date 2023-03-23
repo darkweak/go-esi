@@ -9,15 +9,15 @@ var respond = []byte(`<html>
     <head>
         <title><esi:vars>Hello from $(HTTP_HOST)</esi:vars></title>
         <esi:remove>
-            <esi:include src="http://domain.com/chained-esi-include-1" />
+            <esi:include src="http://domain.com:9080/chained-esi-include-1" />
         </esi:remove>
     </head>
     <body>
         <!--esi
-        <esi:include src="domain.com/not-interpreted"/>
+        <esi:include src="domain.com:9080/not-interpreted"/>
         -->
-        <esi:include src="http://domain.com/chained-esi-include-1" />
-        <esi:include src="http://domain.com/chained-esi-include-1" />
+        <esi:include src="http://domain.com:9080/chained-esi-include-1" />
+        <esi:include src="http://domain.com:9080/chained-esi-include-1" />
     </body>
 </html>
 `)

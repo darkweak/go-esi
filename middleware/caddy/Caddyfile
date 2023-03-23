@@ -4,7 +4,7 @@
     esi
 }
 
-:80 {
+:9080 {
     route /chained-esi-include-1 {
         header Content-Type text/html
         respond `<esi:include src="/chained-esi-include-2"/>`

@@ -14,14 +14,12 @@ const expectedOutput = `<html>
         
     </head>
     <body>
-        
-        <esi:include src="domain.com/not-interpreted"/>
-        
+        <esi:include src="domain.com:9080/not-interpreted"/>
         <h1>CHAINED 2</h1>
         <h1>ALTERNATE ESI INCLUDE</h1>
          
                 <div>
-                    
+                    <h1>ESI INCLUDE</h1>
                 </div>
             
     </body>
@@ -44,7 +42,7 @@ func TestInclude(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(loadCaddyfile(), "caddyfile")
 
-	_, _ = tester.AssertGetResponse(`http://domain.com:9080/include`, http.StatusOK, "<h1>CHAINED 2</h1>")
+	_, _ = tester.AssertGetResponse(`http://domain.com:9080/esi-include`, http.StatusOK, "<h1>ESI INCLUDE</h1>")
 }
 
 func TestIncludeAlt(t *testing.T) {
@@ -58,7 +56,5 @@ func TestEscape(t *testing.T) {
 	tester := caddytest.NewTester(t)
 	tester.InitServer(loadCaddyfile(), "caddyfile")
 
-	_, _ = tester.AssertGetResponse(`http://domain.com:9080/escape`, http.StatusOK, `  
-  <p><esi:vars>Hello, $(HTTP_COOKIE{name})!</esi:vars></p>
-`)
+	_, _ = tester.AssertGetResponse(`http://domain.com:9080/escape`, http.StatusOK, `<p><esi:vars>Hello, $(HTTP_COOKIE{name})!</esi:vars></p>`)
 }

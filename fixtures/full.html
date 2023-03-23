@@ -2,25 +2,25 @@
     <head>
         <title><esi:vars>Hello from $(HTTP_HOST)</esi:vars></title>
         <esi:remove>
-            <esi:include src="http://domain.com/chained-esi-include-1" />
+            <esi:include src="http://domain.com:9080/chained-esi-include-1" />
         </esi:remove>
     </head>
     <body>
         <!--esi
-        <esi:include src="domain.com/not-interpreted"/>
+        <esi:include src="domain.com:9080/not-interpreted"/>
         -->
         <esi:include src="/chained-esi-include-1" />
-        <esi:include src="http://inexistent.abc/something" alt="//domain.com/alt-esi-include" onerror="continue" />
+        <esi:include src="http://inexistent.abc/something" alt="//domain.com:9080/alt-esi-include" onerror="continue" />
         <esi:choose> 
             <esi:when test="$(HTTP_COOKIE{group})=='Advanced'"> 
-                <span><esi:include src="http://domain.com/chained-esi-include-1"/></span>
+                <span><esi:include src="http://domain.com:9080/chained-esi-include-1"/></span>
             </esi:when> 
             <esi:when test="$(HTTP_COOKIE{group})=='Basic User'">
                 <esi:include src="https://google.com"/>
             </esi:when> 
             <esi:otherwise> 
                 <div>
-                    <esi:include src="http://domain.com/esi-include"/>
+                    <esi:include src="http://domain.com:9080/esi-include"/>
                 </div>
             </esi:otherwise>
         </esi:choose>
