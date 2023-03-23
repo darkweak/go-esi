@@ -14,12 +14,12 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
         name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
@@ -39,12 +39,12 @@ jobs:
     steps:
       -
         name: Install Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19
       -
         name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       -
         name: Run Roadrunner tests
         run: cd middleware/roadrunner && go test -v ./...

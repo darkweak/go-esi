@@ -6,16 +6,33 @@ on:
 
 jobs:
   lint-and-tests:
-    name: Validate Go code linting
+    name: lint and static tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Install Go
-        uses: actions/setup-go@v2
+      -
+        name: Add domain.com host to /etc/hosts
+        run: |
+          sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
+      -
+        name: checkout code
+        uses: actions/checkout@v3
+      -
+        name: install Go
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
-      - name: tests
+      -
+        name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+      -
+        name: install xcaddy
+        run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+      -
+        name: build caddy binary
+        run: cd middleware/caddy && make build && cd -
+      -
+        name: run caddy binary as detached mode
+        run: cd middleware/caddy && make run &
+      -
+        name: tests
         run: go test -v -race ./...
