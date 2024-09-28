@@ -12,7 +12,7 @@ import (
 const include = "include"
 
 var (
-	closeInclude     = regexp.MustCompile("/>")
+	closeInclude     = regexp.MustCompile(">")
 	srcAttribute     = regexp.MustCompile(`src="?(.+?)"?( |/>)`)
 	altAttribute     = regexp.MustCompile(`alt="?(.+?)"?( |/>)`)
 	onErrorAttribute = regexp.MustCompile(`onerror="?(.+?)"?( |/>)`)

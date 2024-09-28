@@ -76,6 +76,8 @@ type varsTag struct {
 	*baseTag
 }
 
+const varTagLength = len("<esi:vars>")
+
 // Input (e.g. comment text="This is a comment." />).
 func (c *varsTag) Process(b []byte, req *http.Request) ([]byte, int) {
 	found := closeVars.FindIndex(b)
@@ -85,7 +87,7 @@ func (c *varsTag) Process(b []byte, req *http.Request) ([]byte, int) {
 
 	c.length = found[1]
 
-	return interpretedVar.ReplaceAllFunc(b[5:found[0]], func(b []byte) []byte {
+	return interpretedVar.ReplaceAllFunc(b[varTagLength:found[0]], func(b []byte) []byte {
 		return []byte(parseVariables(b, req))
 	}), c.length
 }

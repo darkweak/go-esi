@@ -2,6 +2,8 @@ package esi
 
 import (
 	"net/http"
+	"slices"
+	"sync"
 )
 
 func findTagName(b []byte) Tag {
@@ -47,14 +49,6 @@ func HasOpenedTags(b []byte) bool {
 	return esi.FindIndex(b) != nil || escapeRg.FindIndex(b) != nil
 }
 
-func CanProcess(b []byte) bool {
-	if tag := findTagName(b); tag != nil {
-		return tag.HasClose(b)
-	}
-
-	return false
-}
-
 func ReadToTag(next []byte, pointer int) (startTagPosition, esiPointer int, t Tag) {
 	var isEscapeTag bool
 
@@ -83,35 +77,86 @@ func ReadToTag(next []byte, pointer int) (startTagPosition, esiPointer int, t Ta
 
 func Parse(b []byte, req *http.Request) []byte {
 	pointer := 0
+	includes := make(map[int]Tag)
 
 	for pointer < len(b) {
-		var escapeTag bool
-
 		next := b[pointer:]
 		tagIdx := esi.FindIndex(next)
 
 		if escIdx := escapeRg.FindIndex(next); escIdx != nil && (tagIdx == nil || escIdx[0] < tagIdx[0]) {
 			tagIdx = escIdx
 			tagIdx[1] = escIdx[0]
-			escapeTag = true
 		}
 
 		if tagIdx == nil {
 			break
 		}
 
-		esiPointer := tagIdx[1]
-		t := findTagName(next[esiPointer:])
+		t := findTagName(next[tagIdx[1]:])
 
-		if escapeTag {
-			esiPointer += 7
+		if t != nil {
+			includes[pointer+tagIdx[0]] = t
 		}
 
-		res, p := t.Process(next[esiPointer:], req)
-		esiPointer += p
+		switch t.(type) {
+		case *escapeTag:
+			pointer += tagIdx[1] + 7
+		default:
+			pointer += tagIdx[1]
+		}
+	}
 
-		b = append(b[:pointer], append(next[:tagIdx[0]], append(res, next[esiPointer:]...)...)...)
-		pointer += len(res) + tagIdx[0]
+	if len(includes) == 0 {
+		return b
+	}
+
+	return processEsiTags(b, req, includes)
+}
+
+func processEsiTags(b []byte, req *http.Request, includes map[int]Tag) []byte {
+	type Response struct {
+		Start int
+		End   int
+		Res   []byte
+		Tag   Tag
+	}
+
+	var wg sync.WaitGroup
+
+	responses := make(chan Response, len(includes))
+
+	for start, t := range includes {
+		wg.Add(1)
+
+		go func(s int, tag Tag) {
+			defer wg.Done()
+
+			data, length := tag.Process(b[s:], req)
+
+			responses <- Response{
+				Start: s,
+				End:   s + length,
+				Res:   data,
+				Tag:   tag,
+			}
+		}(start, t)
+	}
+
+	wg.Wait()
+	close(responses)
+
+	// we need to replace from the bottom to top
+	sorted := make([]Response, 0, len(responses))
+	for r := range responses {
+		sorted = append(sorted, r)
+	}
+
+	slices.SortFunc(sorted, func(a, b Response) int {
+		return b.Start - a.Start
+	})
+
+	for _, r := range sorted {
+		b = append(b[:r.Start], append(r.Res, b[r.End:]...)...)
 	}
 
 	return b

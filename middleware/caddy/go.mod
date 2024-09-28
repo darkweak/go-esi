@@ -1,6 +1,8 @@
 module github.com/darkweak/go-esi/middleware/caddy
 
-go 1.19
+go 1.22
+
+toolchain go1.23.1
 
 require (
 	github.com/caddyserver/caddy/v2 v2.6.4

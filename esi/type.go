@@ -6,9 +6,9 @@ import (
 
 type (
 	Tag interface {
-		Process([]byte, *http.Request) ([]byte, int)
-		HasClose([]byte) bool
-		GetClosePosition([]byte) int
+		Process(body []byte, request *http.Request) ([]byte, int)
+		HasClose(body []byte) bool
+		GetClosePosition(body []byte) int
 	}
 
 	baseTag struct {

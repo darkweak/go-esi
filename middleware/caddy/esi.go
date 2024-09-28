@@ -12,7 +12,7 @@ import (
 	"github.com/darkweak/go-esi/writer"
 )
 
-var bufPool *sync.Pool = &sync.Pool{
+var bufPool = &sync.Pool{
 	New: func() any {
 		return &bytes.Buffer{}
 	},

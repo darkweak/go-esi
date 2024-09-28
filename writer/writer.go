@@ -77,6 +77,7 @@ func (w *Writer) Write(b []byte) (int, error) {
 				go func(tmpBuf []byte, i int, cw *Writer) {
 					cw.AsyncBuf[i] <- tmpBuf
 				}(buf[position:position+startPos], w.Iteration, w)
+
 				w.Iteration++
 			}
 
@@ -101,8 +102,10 @@ func (w *Writer) Write(b []byte) (int, error) {
 			}(t, buf[position:(position-nextPos)+startPos+closePosition], w, w.Iteration)
 
 			position += startPos + closePosition - nextPos
+
 			w.Iteration++
 		}
+
 		w.buf.Write(buf[position:])
 
 		return len(b), nil
@@ -110,6 +113,7 @@ func (w *Writer) Write(b []byte) (int, error) {
 
 	w.AsyncBuf = append(w.AsyncBuf, make(chan []byte))
 	w.AsyncBuf[w.Iteration] <- buf
+
 	w.Iteration++
 
 	return len(b), nil

@@ -1,9 +1,11 @@
 package esi_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/darkweak/go-esi/esi"
@@ -62,7 +64,13 @@ var expected = map[string]string{
 func verify(t *testing.T, fixture string) {
 	t.Helper()
 
-	if result := string(esi.Parse(loadFromFixtures(fixture), getRequest())); result != expected[fixture] {
+	html := loadFromFixtures(fixture)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("<h1>CHAINED 2</h1>"))
+	}))
+	html = []byte(strings.ReplaceAll(string(html), "http://domain.com:9080", server.URL))
+
+	if result := string(esi.Parse(html, getRequest())); result != expected[fixture] {
 		t.Errorf("ESI parsing mismatch from `%s` expected\nExpected:\n%+v\nGiven:\n%+v\n", fixture, expected[fixture], result)
 	}
 }
@@ -114,10 +122,17 @@ func Test_Parse_fullMock(t *testing.T) {
 
 // Benchmarks.
 func BenchmarkInclude(b *testing.B) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("<h1>CHAINED 2</h1>"))
+	}))
+
 	for i := 0; i < b.N; i++ {
 		esi.Parse(
 			[]byte(
-				`<esi:include src="http://domain.com:9080/chained-esi-include-1" alt=http://domain.com:9080/alt-esi-include/>`,
+				fmt.Sprintf(
+					`<esi:include src="http://%s/chained-esi-include-1" alt=http://domain.com:9080/alt-esi-include/>`,
+					server.URL,
+				),
 			),
 			httptest.NewRequest(http.MethodGet, "http://domain.com:9080", nil),
 		)
@@ -132,9 +147,13 @@ var remove = `<esi:include src="http://domain.com:9080/chained-esi-include-1"/>
 <esi:include src="http://domain.com:9080/chained-esi-include-1"/>`
 
 func BenchmarkRemove(b *testing.B) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("<h1>CHAINED 2</h1>"))
+	}))
+
 	for i := 0; i < b.N; i++ {
 		esi.Parse(
-			[]byte(remove),
+			[]byte(strings.ReplaceAll(remove, "domain.com:9080", server.URL)),
 			httptest.NewRequest(http.MethodGet, "http://domain.com:9080", nil),
 		)
 	}
@@ -171,9 +190,13 @@ const full = `<html>
 `
 
 func BenchmarkFull(b *testing.B) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("<h1>CHAINED 2</h1>"))
+	}))
+
 	for i := 0; i < b.N; i++ {
 		esi.Parse(
-			[]byte(full),
+			[]byte(strings.ReplaceAll(full, "domain.com:9080", server.URL)),
 			httptest.NewRequest(http.MethodGet, "http://domain.com:9080", nil),
 		)
 	}

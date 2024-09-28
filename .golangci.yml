@@ -7,18 +7,16 @@ linters:
   disable:
     - bodyclose
     - cyclop
-    - exhaustivestruct
+    - depguard
     - exhaustruct
     - forbidigo
     - gochecknoglobals
     - gci
-    - golint
     - gomnd
-    - ifshort
     - ireturn
     - nestif
     - nonamedreturns
-    - nosnakecase
+    - mnd
     - revive
     - testpackage
     - stylecheck
