@@ -15,17 +15,17 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       -
         name: install Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version: "1.27"
       -
         name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13
+          version: v2.15
       -
         name: install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
