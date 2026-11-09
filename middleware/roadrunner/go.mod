@@ -3,7 +3,7 @@ module github.com/darkweak/go-esi/middleware/roadrunner
 go 1.27.0
 
 require (
-	github.com/darkweak/go-esi v0.0.6
+	github.com/darkweak/go-esi v0.0.7
 	github.com/roadrunner-server/errors v1.2.0
 	go.uber.org/zap v1.24.0
 )
@@ -15,4 +15,4 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 )
 
-replace github.com/darkweak/go-esi v0.0.6 => ../..
+replace github.com/darkweak/go-esi v0.0.7 => ../..

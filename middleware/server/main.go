@@ -14,7 +14,7 @@ var respond = []byte(`<html>
     </head>
     <body>
         <!--esi
-        <esi:include src="domain.com:9080/not-interpreted"/>
+        <esi:include src="domain.com/not-interpreted"/>
         -->
         <esi:include src="http://domain.com:9080/chained-esi-include-1" />
         <esi:include src="http://domain.com:9080/chained-esi-include-1" />

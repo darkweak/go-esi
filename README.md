@@ -131,7 +131,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/go-esi
-      version: v0.0.6
+      version: v0.0.7
 ```
 ```yaml
 # anywhere/dynamic-configuration
