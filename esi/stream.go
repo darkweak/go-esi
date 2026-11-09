@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"sync"
-	"sync/atomic"
 )
 
 // ErrClosed is returned when writing to a closed Stream.
@@ -106,8 +105,13 @@ type Stream struct {
 	done chan struct{}
 
 	dirty  bool // written since the last flush; owned by the writing goroutine.
-	err    atomic.Pointer[error]
 	closed bool
+
+	// err is the first write error. It is guarded by a mutex rather than an
+	// atomic.Pointer because Traefik's Yaegi interpreter cannot handle generic
+	// standard library types.
+	errMu sync.Mutex
+	err   error
 }
 
 // NewStream returns a Stream writing the processed document to dst. The
@@ -266,7 +270,10 @@ func (s *Stream) run() {
 			s.write(seg.data)
 		}
 
-		clear(batch)
+		// Release the references (the clear builtin is unknown to Yaegi).
+		for i := range batch {
+			batch[i] = segment{}
+		}
 	}
 }
 
@@ -276,7 +283,7 @@ func (s *Stream) write(b []byte) {
 	}
 
 	if _, err := s.dst.Write(b); err != nil {
-		s.err.CompareAndSwap(nil, &err)
+		s.setErr(err)
 		// Nobody will read the output anymore: abort the pending includes.
 		s.cancel()
 
@@ -298,18 +305,27 @@ func (s *Stream) flush() {
 		f.Flush()
 	case interface{ Flush() error }:
 		if err := f.Flush(); err != nil {
-			s.err.CompareAndSwap(nil, &err)
+			s.setErr(err)
 			s.cancel()
 		}
 	}
 }
 
 func (s *Stream) loadErr() error {
-	if err := s.err.Load(); err != nil {
-		return *err
-	}
+	s.errMu.Lock()
+	defer s.errMu.Unlock()
 
-	return nil
+	return s.err
+}
+
+// setErr records err unless an error was already recorded.
+func (s *Stream) setErr(err error) {
+	s.errMu.Lock()
+	defer s.errMu.Unlock()
+
+	if s.err == nil {
+		s.err = err
+	}
 }
 
 var _ io.WriteCloser = (*Stream)(nil)

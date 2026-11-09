@@ -87,7 +87,13 @@ func (c *varsTag) Process(b []byte, req *http.Request) ([]byte, int) {
 
 	c.length = end
 
-	content := b[min(len(vars)+1, closeStart):closeStart]
+	// Skip the "vars>" remainder of the opening tag (the min builtin is unknown to Yaegi).
+	contentStart := len(vars) + 1
+	if contentStart > closeStart { //nolint:modernize // Yaegi (Traefik) does not support the min builtin.
+		contentStart = closeStart
+	}
+
+	content := b[contentStart:closeStart]
 	if !bytes.Contains(content, varPrefix) {
 		return content, c.length
 	}

@@ -16,7 +16,7 @@ const expected = `<html>
         
     </head>
     <body>
-        <esi:include src="domain.com/not-interpreted"/>
+        <esi:include src="domain.com:9080/not-interpreted"/>
         <h1>CHAINED 2</h1>
         <h1>CHAINED 2</h1>
     </body>
