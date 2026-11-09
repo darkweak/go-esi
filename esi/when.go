@@ -23,6 +23,7 @@ func validateTest(b []byte, req *http.Request) bool {
 	} else if r := comparison.FindSubmatch(b); r != nil {
 		r1 := strings.TrimSpace(parseVariables(r[1], req))
 		r2 := strings.TrimSpace(parseVariables(r[3], req))
+
 		switch string(r[2]) {
 		case "==":
 			return r1 == r2

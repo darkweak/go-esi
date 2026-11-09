@@ -1,20 +1,12 @@
 package roadrunner_esi
 
 import (
-	"bytes"
 	"net/http"
-	"sync"
 
 	"github.com/darkweak/go-esi/writer"
 	"github.com/roadrunner-server/errors"
 	"go.uber.org/zap"
 )
-
-var bufPool *sync.Pool = &sync.Pool{
-	New: func() any {
-		return &bytes.Buffer{}
-	},
-}
 
 const configurationKey = "http.esi"
 
@@ -50,35 +42,8 @@ func (p *Plugin) Init(cfg Configurer, log *zap.Logger) error {
 // process the esi tags if present.
 func (p *Plugin) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		buf := bufPool.Get().(*bytes.Buffer)
-		buf.Reset()
-		defer bufPool.Put(buf)
-		cw := writer.NewWriter(buf, rw, r)
-		go func(w *writer.Writer) {
-			var i = 0
-			for {
-				if len(w.AsyncBuf) <= i {
-					continue
-				}
-				rs := <-w.AsyncBuf[i]
-				if rs == nil {
-					w.Done <- true
-					break
-				}
-				_, _ = rw.Write(rs)
-				i++
-			}
-		}(cw)
+		cw := writer.NewWriter(rw, r)
 		next.ServeHTTP(cw, r)
-		cw.Header().Del("Content-Length")
-		if cw.Rq.ProtoMajor == 1 {
-			cw.Header().Set("Content-Encoding", "chunked")
-		}
-		cw.AsyncBuf = append(cw.AsyncBuf, make(chan []byte))
-		go func(w *writer.Writer, iteration int) {
-			w.AsyncBuf[iteration] <- nil
-		}(cw, cw.Iteration)
-
-		<-cw.Done
+		_ = cw.Close()
 	})
 }

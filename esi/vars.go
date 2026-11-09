@@ -1,6 +1,7 @@
 package esi
 
 import (
+	"bytes"
 	"net/http"
 	"regexp"
 	"strings"
@@ -22,7 +23,8 @@ var (
 	defaultExtractor = regexp.MustCompile(`\|('|")(.+?)('|")`)
 	stringExtractor  = regexp.MustCompile(`('|")(.+)('|")`)
 
-	closeVars = regexp.MustCompile("((\n| +)+)?</esi:vars>")
+	varPrefix = []byte("$(")
+	closeVars = []byte("</esi:vars>")
 )
 
 func parseVariables(b []byte, req *http.Request) string {
@@ -78,26 +80,27 @@ type varsTag struct {
 
 // Input (e.g. comment text="This is a comment." />).
 func (c *varsTag) Process(b []byte, req *http.Request) ([]byte, int) {
-	found := closeVars.FindIndex(b)
-	if found == nil {
+	closeStart, end := findClose(b, closeVars)
+	if closeStart == -1 {
 		return nil, len(b)
 	}
 
-	c.length = found[1]
+	c.length = end
 
-	return interpretedVar.ReplaceAllFunc(b[5:found[0]], func(b []byte) []byte {
+	content := b[min(len(vars)+1, closeStart):closeStart]
+	if !bytes.Contains(content, varPrefix) {
+		return content, c.length
+	}
+
+	return interpretedVar.ReplaceAllFunc(content, func(b []byte) []byte {
 		return []byte(parseVariables(b, req))
 	}), c.length
 }
 
 func (*varsTag) HasClose(b []byte) bool {
-	return closeVars.FindIndex(b) != nil
+	return bytes.Contains(b, closeVars)
 }
 
 func (*varsTag) GetClosePosition(b []byte) int {
-	if idx := closeVars.FindIndex(b); idx != nil {
-		return idx[1]
-	}
-
-	return 0
+	return closeEnd(b, closeVars)
 }

@@ -1,13 +1,54 @@
 package esi_test
 
 import (
+	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/darkweak/go-esi/esi"
 )
+
+// fixtureRoutes mirrors the routes of middleware/caddy/Caddyfile.
+func fixtureRoutes() *http.ServeMux {
+	mux := http.NewServeMux()
+	respond := func(path, body string) {
+		mux.HandleFunc(path, func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = w.Write([]byte(body))
+		})
+	}
+
+	respond("/chained-esi-include-1", `<esi:include src="/chained-esi-include-2"/>`)
+	respond("/chained-esi-include-2", "<h1>CHAINED 2</h1>")
+	respond("/esi-include", "<h1>ESI INCLUDE</h1>")
+	respond("/alt-esi-include", "<h1>ALTERNATE ESI INCLUDE</h1>")
+
+	return mux
+}
+
+// TestMain serves the fixture routes on :9080 (domain.com must resolve to
+// the loopback) unless another server, e.g. the detached caddy of the CI,
+// already listens there.
+func TestMain(m *testing.M) {
+	srv := &http.Server{Handler: fixtureRoutes(), ReadHeaderTimeout: time.Second}
+
+	if ln, err := net.Listen("tcp", "127.0.0.1:9080"); err == nil {
+		go func() {
+			if e := srv.Serve(ln); e != nil && !errors.Is(e, http.ErrServerClosed) {
+				panic(e)
+			}
+		}()
+	}
+
+	code := m.Run()
+	_ = srv.Close()
+
+	os.Exit(code)
+}
 
 func loadFromFixtures(name string) []byte {
 	b, e := os.ReadFile("../fixtures/" + name)
@@ -114,7 +155,7 @@ func Test_Parse_fullMock(t *testing.T) {
 
 // Benchmarks.
 func BenchmarkInclude(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		esi.Parse(
 			[]byte(
 				`<esi:include src="http://domain.com:9080/chained-esi-include-1" alt=http://domain.com:9080/alt-esi-include/>`,
@@ -132,7 +173,7 @@ var remove = `<esi:include src="http://domain.com:9080/chained-esi-include-1"/>
 <esi:include src="http://domain.com:9080/chained-esi-include-1"/>`
 
 func BenchmarkRemove(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		esi.Parse(
 			[]byte(remove),
 			httptest.NewRequest(http.MethodGet, "http://domain.com:9080", nil),
@@ -171,7 +212,7 @@ const full = `<html>
 `
 
 func BenchmarkFull(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		esi.Parse(
 			[]byte(full),
 			httptest.NewRequest(http.MethodGet, "http://domain.com:9080", nil),

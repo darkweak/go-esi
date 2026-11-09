@@ -1,50 +1,26 @@
 package esi
 
 import (
+	"bytes"
 	"net/http"
+	"sync"
 )
 
 func findTagName(b []byte) Tag {
-	name := tagname.FindSubmatch(b)
-	if name == nil {
-		return nil
+	if bytes.HasPrefix(b, escapePrefix) {
+		return &escapeTag{baseTag: newBaseTag()}
 	}
 
-	switch string(name[1]) {
-	case comment:
-		return &commentTag{
-			baseTag: newBaseTag(),
-		}
-	case choose:
-		return &chooseTag{
-			baseTag: newBaseTag(),
-		}
-	case escape:
-		return &escapeTag{
-			baseTag: newBaseTag(),
-		}
-	case include:
-		return &includeTag{
-			baseTag: newBaseTag(),
-		}
-	case remove:
-		return &removeTag{
-			baseTag: newBaseTag(),
-		}
-	case try:
-	case vars:
-		return &varsTag{
-			baseTag: newBaseTag(),
-		}
-	default:
-		return nil
-	}
+	name, _ := readTagName(b)
 
-	return nil
+	return newTag(name)
 }
 
+// HasOpenedTags reports whether b contains an ESI opening sequence.
 func HasOpenedTags(b []byte) bool {
-	return esi.FindIndex(b) != nil || escapeRg.FindIndex(b) != nil
+	_, kind := nextTagStart(b, true)
+
+	return kind != kindNone
 }
 
 func CanProcess(b []byte) bool {
@@ -55,63 +31,105 @@ func CanProcess(b []byte) bool {
 	return false
 }
 
-func ReadToTag(next []byte, pointer int) (startTagPosition, esiPointer int, t Tag) {
-	tagIdx := esi.FindIndex(next)
-	var isEscapeTag bool
-
-	if escIdx := escapeRg.FindIndex(next); escIdx != nil && (tagIdx == nil || escIdx[0] < tagIdx[0]) {
-		tagIdx = escIdx
-		tagIdx[1] = escIdx[0]
-		isEscapeTag = true
-	}
-
-	if tagIdx == nil {
+// ReadToTag returns the position of the next ESI tag in next, the position
+// right after its opening sequence and the matching Tag.
+//
+// Deprecated: use Parse or NewStream which handle the whole tag lifecycle.
+func ReadToTag(next []byte, _ int) (startTagPosition, esiPointer int, t Tag) {
+	i, kind := nextTagStart(next, true)
+	if kind == kindNone {
 		return len(next), 0, nil
 	}
 
-	esiPointer = tagIdx[1]
-	startTagPosition = tagIdx[0]
-	t = findTagName(next[esiPointer:])
-
-	if isEscapeTag {
-		esiPointer += 7
+	if kind == kindEscape {
+		return i, i + len(escapePrefix), &escapeTag{baseTag: newBaseTag()}
 	}
 
-	return
+	esiPointer = i + len(esiPrefix)
+
+	return i, esiPointer, findTagName(next[esiPointer:])
 }
 
-func Parse(b []byte, req *http.Request) []byte {
-	pointer := 0
+// asyncPart is a tag processed concurrently whose output fills a slot of the
+// final document.
+type asyncPart struct {
+	t    Tag
+	body []byte
+	out  []byte
+}
 
-	for pointer < len(b) {
-		var escapeTag bool
+type part struct {
+	static []byte
+	async  *asyncPart
+}
 
-		next := b[pointer:]
-		tagIdx := esi.FindIndex(next)
+// collector is the sink used by Parse. It runs I/O-bound tags concurrently,
+// except the last one which is processed on the calling goroutine since it
+// would wait anyway.
+type collector struct {
+	req     *http.Request
+	parts   []part
+	pending *asyncPart
+	wg      sync.WaitGroup
+}
 
-		if escIdx := escapeRg.FindIndex(next); escIdx != nil && (tagIdx == nil || escIdx[0] < tagIdx[0]) {
-			tagIdx = escIdx
-			tagIdx[1] = escIdx[0]
-			escapeTag = true
-		}
+func (c *collector) static(b []byte) {
+	if len(b) > 0 {
+		c.parts = append(c.parts, part{static: b})
+	}
+}
 
-		if tagIdx == nil {
-			break
-		}
+func (c *collector) tag(t Tag, body []byte) {
+	if !isAsync(t, body) {
+		c.static(process(t, body, c.req))
 
-		esiPointer := tagIdx[1]
-		t := findTagName(next[esiPointer:])
-
-		if escapeTag {
-			esiPointer += 7
-		}
-
-		res, p := t.Process(next[esiPointer:], req)
-		esiPointer += p
-
-		b = append(b[:pointer], append(next[:tagIdx[0]], append(res, next[esiPointer:]...)...)...)
-		pointer += len(res) + tagIdx[0]
+		return
 	}
 
-	return b
+	a := &asyncPart{t: t, body: body}
+	c.parts = append(c.parts, part{async: a})
+
+	if p := c.pending; p != nil {
+		c.wg.Go(func() { p.out = process(p.t, p.body, c.req) })
+	}
+
+	c.pending = a
+}
+
+// Parse processes the ESI tags of b and returns the resulting document.
+// Independent include tags are fetched in parallel. b is not modified but the
+// result may alias it.
+func Parse(b []byte, req *http.Request) []byte {
+	if !HasOpenedTags(b) {
+		return b
+	}
+
+	c := collector{req: req}
+	scan(b, true, &c)
+
+	if p := c.pending; p != nil {
+		p.out = process(p.t, p.body, req)
+	}
+
+	c.wg.Wait()
+
+	size := 0
+	for _, p := range c.parts {
+		if p.async != nil {
+			size += len(p.async.out)
+		} else {
+			size += len(p.static)
+		}
+	}
+
+	out := make([]byte, 0, size)
+	for _, p := range c.parts {
+		if p.async != nil {
+			out = append(out, p.async.out...)
+		} else {
+			out = append(out, p.static...)
+		}
+	}
+
+	return out
 }

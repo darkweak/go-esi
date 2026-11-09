@@ -1,6 +1,7 @@
 package esi
 
 import (
+	"bytes"
 	"net/http"
 	"regexp"
 )
@@ -8,7 +9,7 @@ import (
 const choose = "choose"
 
 var (
-	closeChoose = regexp.MustCompile("</esi:choose>")
+	closeChoose = []byte("</esi:choose>")
 	whenRg      = regexp.MustCompile(`(?s)<esi:when test="(.+?)">(.+?)</esi:when>`)
 	otherwiseRg = regexp.MustCompile(`(?s)<esi:otherwise>(.+?)</esi:otherwise>`)
 )
@@ -19,24 +20,26 @@ type chooseTag struct {
 
 // Input (e.g.
 // <esi:choose>
-//   <esi:when test="$(HTTP_COOKIE{group})=='Advanced'">
-//       <esi:include src="http://www.example.com/advanced.html"/>
-//   </esi:when>
-//   <esi:when test="$(HTTP_COOKIE{group})=='Basic User'">
-//       <esi:include src="http://www.example.com/basic.html"/>
-//   </esi:when>
-//   <esi:otherwise>
-//       <esi:include src="http://www.example.com/new_user.html"/>
-//   </esi:otherwise>
+//
+//	<esi:when test="$(HTTP_COOKIE{group})=='Advanced'">
+//	    <esi:include src="http://www.example.com/advanced.html"/>
+//	</esi:when>
+//	<esi:when test="$(HTTP_COOKIE{group})=='Basic User'">
+//	    <esi:include src="http://www.example.com/basic.html"/>
+//	</esi:when>
+//	<esi:otherwise>
+//	    <esi:include src="http://www.example.com/new_user.html"/>
+//	</esi:otherwise>
+//
 // </esi:choose>
 // ).
 func (c *chooseTag) Process(b []byte, req *http.Request) ([]byte, int) {
-	found := closeChoose.FindIndex(b)
-	if found == nil {
+	end := closeEnd(b, closeChoose)
+	if end == 0 {
 		return nil, len(b)
 	}
 
-	c.length = found[1]
+	c.length = end
 	tagIdxs := whenRg.FindAllSubmatch(b, -1)
 
 	var res []byte
@@ -45,7 +48,7 @@ func (c *chooseTag) Process(b []byte, req *http.Request) ([]byte, int) {
 		if validateTest(v[1], req) {
 			res = Parse(v[2], req)
 
-			break
+			return res, c.length
 		}
 	}
 
@@ -58,12 +61,9 @@ func (c *chooseTag) Process(b []byte, req *http.Request) ([]byte, int) {
 }
 
 func (*chooseTag) HasClose(b []byte) bool {
-	return closeChoose.FindIndex(b) != nil
+	return bytes.Contains(b, closeChoose)
 }
 
 func (*chooseTag) GetClosePosition(b []byte) int {
-	if idx := closeChoose.FindIndex(b); idx != nil {
-		return idx[1]
-	}
-	return 0
+	return closeEnd(b, closeChoose)
 }

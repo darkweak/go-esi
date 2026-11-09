@@ -1,36 +1,33 @@
 package esi
 
 import (
+	"bytes"
 	"net/http"
-	"regexp"
 )
 
 const remove = "remove"
 
-var closeRemove = regexp.MustCompile("</esi:remove>")
+var closeRemove = []byte("</esi:remove>")
 
 type removeTag struct {
 	*baseTag
 }
 
 func (r *removeTag) Process(b []byte, req *http.Request) ([]byte, int) {
-	closeIdx := closeRemove.FindIndex(b)
-	if closeIdx == nil {
+	end := closeEnd(b, closeRemove)
+	if end == 0 {
 		return []byte{}, len(b)
 	}
 
-	r.length = closeIdx[1]
+	r.length = end
 
 	return []byte{}, r.length
 }
 
 func (*removeTag) HasClose(b []byte) bool {
-	return closeRemove.FindIndex(b) != nil
+	return bytes.Contains(b, closeRemove)
 }
 
 func (*removeTag) GetClosePosition(b []byte) int {
-	if idx := closeRemove.FindIndex(b); idx != nil {
-		return idx[1]
-	}
-	return 0
+	return closeEnd(b, closeRemove)
 }

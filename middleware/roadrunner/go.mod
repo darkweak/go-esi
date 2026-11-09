@@ -1,6 +1,6 @@
 module github.com/darkweak/go-esi/middleware/roadrunner
 
-go 1.19
+go 1.27.0
 
 require (
 	github.com/darkweak/go-esi v0.0.6

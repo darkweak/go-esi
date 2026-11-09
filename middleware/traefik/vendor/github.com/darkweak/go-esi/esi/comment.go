@@ -1,35 +1,47 @@
 package esi
 
 import (
+	"bytes"
 	"net/http"
-	"regexp"
 )
 
 const comment = "comment"
 
-var closeComment = regexp.MustCompile("/>")
+var closeComment = []byte("/>")
 
 type commentTag struct {
 	*baseTag
 }
 
+// commentEnd returns the end of the closing "/>" including the spaces and
+// newlines following it, or 0.
+func commentEnd(b []byte) int {
+	end := closeEnd(b, closeComment)
+	if end == 0 {
+		return 0
+	}
+
+	for end < len(b) && isSpace(b[end]) {
+		end++
+	}
+
+	return end
+}
+
 // Input (e.g. comment text="This is a comment." />).
-func (c *commentTag) Process(b []byte, req *http.Request) ([]byte, int) {
-	found := closeComment.FindIndex(b)
-	if found == nil {
+func (c *commentTag) Process(b []byte, _ *http.Request) ([]byte, int) {
+	end := commentEnd(b)
+	if end == 0 {
 		return nil, len(b)
 	}
 
-	return []byte{}, found[1]
+	return []byte{}, end
 }
 
 func (*commentTag) HasClose(b []byte) bool {
-	return closeComment.FindIndex(b) != nil
+	return bytes.Contains(b, closeComment)
 }
 
 func (*commentTag) GetClosePosition(b []byte) int {
-	if idx := closeComment.FindIndex(b); idx != nil {
-		return idx[1]
-	}
-	return 0
+	return commentEnd(b)
 }

@@ -1,97 +1,92 @@
 package writer
 
 import (
-	"bytes"
 	"net/http"
 
 	"github.com/darkweak/go-esi/esi"
 )
 
+// Writer is an http.ResponseWriter processing the ESI tags of the response
+// body while it is streamed to the client. Close must be called once the
+// wrapped handler returns.
 type Writer struct {
-	buf       *bytes.Buffer
-	rw        http.ResponseWriter
-	Rq        *http.Request
-	AsyncBuf  []chan []byte
-	Done      chan bool
-	flushed   bool
-	Iteration int
+	rw          http.ResponseWriter
+	Rq          *http.Request
+	stream      *esi.Stream
+	wroteHeader bool
 }
 
-func NewWriter(buf *bytes.Buffer, rw http.ResponseWriter, rq *http.Request) *Writer {
+// NewWriter returns a Writer streaming the processed response to rw.
+func NewWriter(rw http.ResponseWriter, rq *http.Request) *Writer {
+	if rq.URL.Scheme == "" {
+		if rq.TLS != nil {
+			rq.URL.Scheme = "https"
+		} else {
+			rq.URL.Scheme = "http"
+		}
+	}
+
+	if rq.URL.Host == "" {
+		rq.URL.Host = rq.Host
+	}
+
 	return &Writer{
-		buf:      buf,
-		Rq:       rq,
-		rw:       rw,
-		AsyncBuf: make([]chan []byte, 0),
-		Done:     make(chan bool),
+		rw:     rw,
+		Rq:     rq,
+		stream: esi.NewStream(rw, rq),
 	}
 }
 
-// Header implements http.ResponseWriter
+// Header implements http.ResponseWriter.
 func (w *Writer) Header() http.Header {
 	return w.rw.Header()
 }
 
-// WriteHeader implements http.ResponseWriter
+// WriteHeader implements http.ResponseWriter. The Content-Length header is
+// dropped because processing the ESI tags changes the body length.
 func (w *Writer) WriteHeader(statusCode int) {
-	if statusCode == 0 {
-		w.rw.WriteHeader(http.StatusOK)
+	if w.wroteHeader {
+		return
 	}
+
+	// Informational responses are forwarded, the final one is still to come.
+	if statusCode >= http.StatusContinue && statusCode < http.StatusOK && statusCode != http.StatusSwitchingProtocols {
+		w.rw.WriteHeader(statusCode)
+
+		return
+	}
+
+	w.wroteHeader = true
+	w.rw.Header().Del("Content-Length")
+	w.rw.WriteHeader(statusCode)
 }
 
-// Flush implements http.Flusher
-func (w *Writer) Flush() {
-	if !w.flushed {
-		w.rw.(http.Flusher).Flush()
-		w.flushed = true
-	}
-}
-
-// Write will write the response body
+// Write implements http.ResponseWriter.
 func (w *Writer) Write(b []byte) (int, error) {
-	buf := append(w.buf.Bytes(), b...)
-	w.buf.Reset()
-
-	if esi.HasOpenedTags(buf) {
-		position := 0
-		for position < len(buf) {
-			startPos, nextPos, t := esi.ReadToTag(buf[position:], position)
-
-			if startPos != 0 {
-				w.AsyncBuf = append(w.AsyncBuf, make(chan []byte))
-				go func(tmpBuf []byte, i int, cw *Writer) {
-					cw.AsyncBuf[i] <- tmpBuf
-				}(buf[position:position+startPos], w.Iteration, w)
-				w.Iteration++
-			}
-
-			if t == nil {
-				break
-			}
-
-			closePosition := t.GetClosePosition(buf[position+startPos:])
-			if closePosition == 0 {
-				position += startPos
-				break
-			}
-
-			position += nextPos
-			w.AsyncBuf = append(w.AsyncBuf, make(chan []byte))
-			go func(currentTag esi.Tag, tmpBuf []byte, cw *Writer, Iteration int) {
-				p, _ := currentTag.Process(tmpBuf, cw.Rq)
-				cw.AsyncBuf[Iteration] <- p
-			}(t, buf[position:(position-nextPos)+startPos+closePosition], w, w.Iteration)
-			position += startPos + closePosition - nextPos
-			w.Iteration++
-		}
-		w.buf.Write(buf[position:])
-		return len(b), nil
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
 	}
 
-	w.AsyncBuf = append(w.AsyncBuf, make(chan []byte))
-	w.AsyncBuf[w.Iteration] <- buf
-	w.Iteration++
-	return len(b), nil
+	return w.stream.Write(b)
 }
 
-var _ http.ResponseWriter = (*Writer)(nil)
+// Flush implements http.Flusher.
+func (w *Writer) Flush() {
+	w.stream.Flush()
+}
+
+// Close processes the remaining buffered content and waits for the pending
+// ESI tags to be written.
+func (w *Writer) Close() error {
+	return w.stream.Close()
+}
+
+// Unwrap returns the underlying http.ResponseWriter (used by http.ResponseController).
+func (w *Writer) Unwrap() http.ResponseWriter {
+	return w.rw
+}
+
+var (
+	_ http.ResponseWriter = (*Writer)(nil)
+	_ http.Flusher        = (*Writer)(nil)
+)

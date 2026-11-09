@@ -1,41 +1,38 @@
 package esi
 
 import (
+	"bytes"
 	"net/http"
-	"regexp"
 )
 
 const escape = "<!--esi"
 
-var (
-	escapeRg    = regexp.MustCompile("<!--esi")
-	closeEscape = regexp.MustCompile("-->")
-)
+var closeEscape = []byte("-->")
 
 type escapeTag struct {
 	*baseTag
 }
 
 func (e *escapeTag) Process(b []byte, req *http.Request) ([]byte, int) {
-	closeIdx := closeEscape.FindIndex(b)
-
-	if closeIdx == nil {
+	closeStart, end := findClose(b, closeEscape)
+	if closeStart == -1 {
 		return nil, len(b)
 	}
 
-	e.length = closeIdx[1]
-	b = b[:closeIdx[0]]
+	startPosition := 0
+	for startPosition < closeStart && isSpace(b[startPosition]) {
+		startPosition++
+	}
 
-	return b, e.length
+	e.length = end
+
+	return b[startPosition:closeStart], e.length
 }
 
 func (*escapeTag) HasClose(b []byte) bool {
-	return closeEscape.FindIndex(b) != nil
+	return bytes.Contains(b, closeEscape)
 }
 
 func (*escapeTag) GetClosePosition(b []byte) int {
-	if idx := closeEscape.FindIndex(b); idx != nil {
-		return idx[1]
-	}
-	return 0
+	return closeEnd(b, closeEscape)
 }
