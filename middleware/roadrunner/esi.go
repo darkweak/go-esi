@@ -8,7 +8,10 @@ import (
 	"go.uber.org/zap"
 )
 
-const configurationKey = "http.esi"
+const (
+	configurationKey = "http.esi"
+	defaultHostKey   = configurationKey + ".default_host"
+)
 
 type (
 	// Configurer interface used to parse yaml configuration.
@@ -20,7 +23,9 @@ type (
 		Has(name string) bool
 	}
 
-	Plugin struct{}
+	Plugin struct {
+		opts []writer.Option
+	}
 )
 
 // Name is the plugin name
@@ -35,6 +40,15 @@ func (p *Plugin) Init(cfg Configurer, log *zap.Logger) error {
 		return errors.E(op, errors.Disabled)
 	}
 
+	defaultHost, _ := cfg.Get(defaultHostKey).(string)
+
+	base, err := writer.ParseBaseURL(defaultHost)
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	p.opts = []writer.Option{writer.WithBaseURL(base)}
+
 	return nil
 }
 
@@ -42,7 +56,7 @@ func (p *Plugin) Init(cfg Configurer, log *zap.Logger) error {
 // process the esi tags if present.
 func (p *Plugin) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		cw := writer.NewWriter(rw, r)
+		cw := writer.NewWriter(rw, r, p.opts...)
 		next.ServeHTTP(cw, r)
 		_ = cw.Close()
 	})

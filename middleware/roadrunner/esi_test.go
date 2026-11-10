@@ -8,8 +8,10 @@ import (
 )
 
 type (
-	configWrapper struct{}
-	next          struct{}
+	configWrapper struct {
+		values map[string]any
+	}
+	next struct{}
 )
 
 var nextFilter = &next{}
@@ -29,8 +31,8 @@ func (n *next) ServeHTTP(rw http.ResponseWriter, rq *http.Request) {
 	_, _ = rw.Write([]byte(`Hello Roadrunner! <esi:include src="/include" />`))
 }
 
-func (*configWrapper) Get(name string) any {
-	return nil
+func (c *configWrapper) Get(name string) any {
+	return c.values[name]
 }
 func (*configWrapper) Has(name string) bool {
 	return true
@@ -76,5 +78,28 @@ func Test_Plugin_Middleware(t *testing.T) {
 
 	if string(b) != "Hello Roadrunner! " {
 		t.Error(`The returned response must be equal to "Hello Roadrunner! " because of non running service.`)
+	}
+}
+
+func Test_Plugin_DefaultHost(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("from default host " + r.URL.Path))
+	}))
+	defer upstream.Close()
+
+	p := &Plugin{}
+	if err := p.Init(&configWrapper{values: map[string]any{defaultHostKey: upstream.URL}}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	req, res := prepare("http://localhost/handled")
+	p.Middleware(nextFilter).ServeHTTP(res, req)
+
+	if got, want := res.Body.String(), "Hello Roadrunner! from default host /include"; got != want {
+		t.Errorf("want %q, got %q", want, got)
+	}
+
+	if (&Plugin{}).Init(&configWrapper{values: map[string]any{defaultHostKey: "ftp://svc"}}, nil) == nil {
+		t.Error("The Init method must fail with an invalid default_host.")
 	}
 }

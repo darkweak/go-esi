@@ -75,6 +75,22 @@ func esiMiddleware(next http.Handler) http.Handler {
 }
 ```
 
+### Resolve relative includes against another host
+By default, a relative include (e.g. `<esi:include src="/fragment"/>`) is fetched from the host of the incoming request.
+`writer.WithBaseURL` resolves them against another origin instead, e.g. an internal service. The path of the incoming
+request is kept, and the `Cookie` and `Authorization` headers are forwarded to that origin as it becomes the same-origin
+target. Absolute includes are not affected.
+```go
+// The scheme is optional and defaults to http.
+base, err := writer.ParseBaseURL("static-webserver.my-app.svc.cluster.local")
+if err != nil {
+    return err
+}
+
+cw := writer.NewWriter(rw, r, writer.WithBaseURL(base))
+```
+Every middleware exposes it as a `default host` setting, see below.
+
 ## Available as middleware
 - [x] Caddy
 - [x] Træfik
@@ -85,6 +101,16 @@ func esiMiddleware(next http.Handler) http.Handler {
 xcaddy build --with github.com/darkweak/go-esi/middleware/caddy
 ```
 Refer to the [sample Caddyfile](https://github.com/darkweak/go-esi/blob/master/middleware/caddy/Caddyfile) to know how to use that.
+
+To resolve the relative includes against another host:
+```caddyfile
+route /* {
+    esi {
+        default_host backend:8080
+    }
+    reverse_proxy backend:8080
+}
+```
 
 ### Roadrunner middleware
 To use the `go-esi` processor as Roadrunner middleware, you just have to follow the steps below.  
@@ -118,6 +144,9 @@ After that, you'll be able to set enable and add the esi processor to the middle
 http:
   # Other http sub keys
   esi: {}
+  # Or, to resolve the relative includes against another host:
+  # esi:
+  #   default_host: backend:8080
   middleware:
     - headers
     - gzip
@@ -146,6 +175,18 @@ http:
     esi:
       plugin:
         esi: {}
+```
+To resolve the relative includes against another host (e.g. a Kubernetes service), set `defaultHost`:
+```yaml
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: esi
+  namespace: my-app
+spec:
+  plugin:
+    esi:
+      defaultHost: static-webserver.my-app.svc.cluster.local # or http(s)://host:port
 ```
 Refer to the [sample traefik file](https://github.com/darkweak/go-esi/blob/master/middleware/traefik/esi-configuration.yml) to know how to use that.
 
