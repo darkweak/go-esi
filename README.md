@@ -26,20 +26,52 @@ go get -u github.com/darkweak/go-esi
 ```
 
 ## Usage
+### Parse a whole document
 ```go
 import (
     // ...
-    github.com/darkweak/go-esi/esi
+    "github.com/darkweak/go-esi/esi"
 )
 
 //...
 
 func functionToParseESITags(b []byte, r *http.Request) []byte {
-    // Returns the parsed response.
+    // Returns the parsed response. The include tags are fetched in parallel.
     res := esi.Parse(b, r)
 
     //...
     return res
+}
+```
+
+### Stream a document
+`esi.Stream` processes the ESI tags while the document is written to it. The static content is forwarded as soon as it is
+read, the include tags are fetched concurrently, and their content is written in the document order. The destination is
+flushed (if it implements `http.Flusher`) whenever the output has to wait for an include or for more input.
+```go
+func streamESI(dst io.Writer, src io.Reader, r *http.Request) error {
+    s := esi.NewStream(dst, r)
+    if _, err := io.Copy(s, src); err != nil {
+        _ = s.Close()
+
+        return err
+    }
+
+    // Close processes the remaining content and waits for the pending includes.
+    return s.Close()
+}
+```
+
+### Wrap an `http.ResponseWriter`
+```go
+import "github.com/darkweak/go-esi/writer"
+
+func esiMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+        cw := writer.NewWriter(rw, r)
+        next.ServeHTTP(cw, r)
+        _ = cw.Close()
+    })
 }
 ```
 
@@ -99,7 +131,7 @@ experimental:
   plugins:
     souin:
       moduleName: github.com/darkweak/go-esi
-      version: v0.0.6
+      version: v0.0.7
 ```
 ```yaml
 # anywhere/dynamic-configuration

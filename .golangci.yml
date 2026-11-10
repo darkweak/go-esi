@@ -1,25 +1,53 @@
+version: "2"
 run:
-  timeout: 30s
   issues-exit-code: 1
-
 linters:
-  enable-all: true
+  default: all
   disable:
     - bodyclose
     - cyclop
-    - exhaustivestruct
+    - depguard
+    - embeddedstructfieldcheck
     - exhaustruct
+    - exhaustruct_v5
     - forbidigo
+    - funcorder
     - gochecknoglobals
-    - gci
-    - golint
-    - gomnd
-    - ifshort
+    - inamedparam
     - ireturn
+    - mnd
     - nestif
+    - noinlineerr
     - nonamedreturns
-    - nosnakecase
     - revive
     - testpackage
-    - stylecheck
     - varnamelen
+    - wrapcheck
+    - wsl
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - noctx
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

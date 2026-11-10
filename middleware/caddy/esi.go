@@ -1,9 +1,8 @@
 package caddy_esi
 
 import (
-	"bytes"
+	"errors"
 	"net/http"
-	"sync"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
@@ -11,12 +10,6 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/darkweak/go-esi/writer"
 )
-
-var bufPool *sync.Pool = &sync.Pool{
-	New: func() any {
-		return &bytes.Buffer{}
-	},
-}
 
 func init() {
 	caddy.RegisterModule(ESI{})
@@ -41,38 +34,10 @@ func (ESI) CaddyModule() caddy.ModuleInfo {
 
 // ServeHTTP implements caddyhttp.MiddlewareHandler
 func (e *ESI) ServeHTTP(rw http.ResponseWriter, r *http.Request, next caddyhttp.Handler) error {
-	buf := bufPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	defer bufPool.Put(buf)
-	cw := writer.NewWriter(buf, rw, r)
-	go func(w *writer.Writer) {
-		var i = 0
-		for {
-			if len(w.AsyncBuf) <= i {
-				continue
-			}
-			rs := <-w.AsyncBuf[i]
-			if rs == nil {
-				w.Done <- true
-				break
-			}
-			_, _ = rw.Write(rs)
-			i++
-		}
-	}(cw)
-	next.ServeHTTP(cw, r)
-	cw.Header().Del("Content-Length")
-	if cw.Rq.ProtoMajor == 1 {
-		cw.Header().Set("Content-Encoding", "chunked")
-	}
-	cw.AsyncBuf = append(cw.AsyncBuf, make(chan []byte))
-	go func(w *writer.Writer, iteration int) {
-		w.AsyncBuf[iteration] <- nil
-	}(cw, cw.Iteration)
+	cw := writer.NewWriter(rw, r)
+	err := next.ServeHTTP(cw, r)
 
-	<-cw.Done
-
-	return nil
+	return errors.Join(err, cw.Close())
 }
 
 // Provision implements caddy.Provisioner

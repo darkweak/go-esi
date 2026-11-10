@@ -2,17 +2,19 @@ package esi
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
 	"net/url"
 	"regexp"
 )
 
-const include = "include"
+const (
+	include             = "include"
+	maxIdleConnsPerHost = 64
+)
 
 var (
-	closeInclude     = regexp.MustCompile("/>")
+	closeInclude     = []byte("/>")
 	srcAttribute     = regexp.MustCompile(`src="?(.+?)"?( |/>)`)
 	altAttribute     = regexp.MustCompile(`alt="?(.+?)"?( |/>)`)
 	onErrorAttribute = regexp.MustCompile(`onerror="?(.+?)"?( |/>)`)
@@ -73,45 +75,84 @@ func addHeaders(headers []string, req *http.Request, rq *http.Request) {
 	}
 }
 
-// Input (e.g. include src="https://domain.com/esi-include" alt="https://domain.com/alt-esi-include" />)
-// With or without the alt
-// With or without a space separator before the closing
-// With or without the quotes around the src/alt value.
-func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
-	closeIdx := closeInclude.FindIndex(b)
+// client is shared by every include so connections are pooled and reused.
+// Includes run in parallel, so keep more idle connections per host than the
+// default (2) to avoid reconnecting on every page.
+var client = &http.Client{Transport: newTransport()}
 
-	if closeIdx == nil {
-		return nil, len(b)
+func newTransport() http.RoundTripper {
+	t, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return http.DefaultTransport
 	}
 
-	i.length = closeIdx[1]
-	if e := i.loadAttributes(b[8:i.length]); e != nil {
-		return nil, len(b)
+	t = t.Clone()
+	t.MaxIdleConnsPerHost = maxIdleConnsPerHost
+
+	return t
+}
+
+func fetch(src string, req *http.Request) (*http.Request, *http.Response, error) {
+	//nolint:gosec // G704: fetching the include source is the purpose of the tag.
+	rq, err := http.NewRequestWithContext(req.Context(), http.MethodGet, sanitizeURL(src, req.URL), nil)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	rq, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, sanitizeURL(i.src, req.URL), nil)
 	addHeaders(headersSafe, req, rq)
 
 	if rq.URL.Scheme == req.URL.Scheme && rq.URL.Host == req.URL.Host {
 		addHeaders(headersUnsafe, req, rq)
 	}
 
-	client := &http.Client{}
-	response, err := client.Do(rq)
-	req = rq
+	response, err := client.Do(rq) //nolint:gosec // G704: same as above.
 
-	if (err != nil || response.StatusCode >= 400) && i.alt != "" {
-		rq, _ = http.NewRequestWithContext(context.Background(), http.MethodGet, sanitizeURL(i.alt, req.URL), nil)
-		addHeaders(headersSafe, req, rq)
+	return rq, response, err
+}
 
-		if rq.URL.Scheme == req.URL.Scheme && rq.URL.Host == req.URL.Host {
-			addHeaders(headersUnsafe, req, rq)
+func failed(response *http.Response, err error) bool {
+	return err != nil || response.StatusCode >= http.StatusBadRequest
+}
+
+// Input (e.g. include src="https://domain.com/esi-include" alt="https://domain.com/alt-esi-include" />)
+// With or without the alt
+// With or without a space separator before the closing
+// With or without the quotes around the src/alt value.
+func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
+	closeIdx := bytes.Index(b, closeInclude)
+	if closeIdx == -1 {
+		return nil, len(b)
+	}
+
+	i.length = closeIdx + len(closeInclude)
+	if e := i.loadAttributes(b[8:i.length]); e != nil {
+		return nil, len(b)
+	}
+
+	rq, response, err := fetch(i.src, req)
+	if rq == nil {
+		return nil, i.length
+	}
+
+	if failed(response, err) && i.alt != "" {
+		if response != nil {
+			_ = response.Body.Close()
 		}
 
-		response, err = client.Do(rq)
-		req = rq
+		var altRq *http.Request
 
-		if !i.silent && (err != nil || response.StatusCode >= 400) {
+		altRq, response, err = fetch(i.alt, rq)
+		if altRq == nil {
+			return nil, i.length
+		}
+
+		rq = altRq
+
+		if !i.silent && failed(response, err) {
+			if response != nil {
+				_ = response.Body.Close()
+			}
+
 			return nil, len(b)
 		}
 	}
@@ -120,23 +161,23 @@ func (i *includeTag) Process(b []byte, req *http.Request) ([]byte, int) {
 		return nil, i.length
 	}
 
-	var buf bytes.Buffer
+	body, err := io.ReadAll(response.Body)
+	_ = response.Body.Close()
 
-	defer response.Body.Close()
-	_, _ = io.Copy(&buf, response.Body)
+	if err != nil {
+		return nil, i.length
+	}
 
-	b = Parse(buf.Bytes(), req)
-
-	return b, i.length
+	return Parse(body, rq), i.length
 }
 
 func (*includeTag) HasClose(b []byte) bool {
-	return closeInclude.FindIndex(b) != nil
+	return bytes.Contains(b, closeInclude)
 }
 
 func (*includeTag) GetClosePosition(b []byte) int {
-	if idx := closeInclude.FindIndex(b); idx != nil {
-		return idx[1]
+	if idx := bytes.Index(b, closeInclude); idx != -1 {
+		return idx + len(closeInclude)
 	}
 
 	return 0

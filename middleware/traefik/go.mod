@@ -1,7 +1,7 @@
 module github.com/darkweak/go-esi/middleware/traefik
 
-go 1.19
+go 1.27.0
 
-require github.com/darkweak/go-esi v0.0.6
+require github.com/darkweak/go-esi v0.0.7
 
-replace github.com/darkweak/go-esi v0.0.6 => ../..
+replace github.com/darkweak/go-esi v0.0.7 => ../..

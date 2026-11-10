@@ -34,6 +34,7 @@ func main() {
 	}
 
 	defer res.Body.Close()
+
 	_, _ = io.Copy(buf, res.Body)
 
 	result := buf.String()

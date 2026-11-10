@@ -14,7 +14,7 @@ var respond = []byte(`<html>
     </head>
     <body>
         <!--esi
-        <esi:include src="domain.com:9080/not-interpreted"/>
+        <esi:include src="domain.com/not-interpreted"/>
         -->
         <esi:include src="http://domain.com:9080/chained-esi-include-1" />
         <esi:include src="http://domain.com:9080/chained-esi-include-1" />
@@ -27,14 +27,21 @@ func main() {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(respond[0:97])
+
 		if flusher, ok := w.(http.Flusher); ok {
 			flusher.Flush()
 		}
+
 		time.Sleep(time.Second)
+
 		_, _ = w.Write(respond[97:194])
+
 		time.Sleep(time.Second)
+
 		_, _ = w.Write(respond[194:291])
+
 		time.Sleep(time.Second)
+
 		_, _ = w.Write(respond[291:])
 	})
 

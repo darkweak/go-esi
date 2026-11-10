@@ -14,18 +14,18 @@ jobs:
           sudo echo "127.0.0.1 domain.com" | sudo tee -a /etc/hosts
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v7
         with:
-          go-version: 1.19
+          go-version: "1.27"
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
       -
         name: Install xcaddy
         run: go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
       -
         name: Build go-esi as caddy module
-        run: cd middleware/caddy && xcaddy build --with github.com/darkweak/go-esi/middleware/caddy=./ --with github.com/darkweak/go-esi@latest=../..
+        run: cd middleware/caddy && xcaddy build --with github.com/darkweak/go-esi=../.. --with github.com/darkweak/go-esi/middleware/caddy=./
       -
         name: Run Caddy tests
         run: cd middleware/caddy && go test -v ./...
@@ -39,12 +39,12 @@ jobs:
     steps:
       -
         name: Install Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v7
         with:
-          go-version: 1.19
+          go-version: "1.27"
       -
         name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
       -
         name: Run Roadrunner tests
         run: cd middleware/roadrunner && go test -v ./...
