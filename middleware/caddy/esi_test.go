@@ -77,3 +77,31 @@ func TestUnitary(t *testing.T) {
 	_, _ = tester.AssertGetResponse(`http://domain.com:9080/include`, http.StatusOK, "<h1>CHAINED 2</h1>")
 	_, _ = tester.AssertGetResponse(`http://domain.com:9080/alt`, http.StatusOK, "<h1>ALTERNATE ESI INCLUDE</h1>")
 }
+
+func TestDefaultHost(t *testing.T) {
+	tester := caddytest.NewTester(t)
+	tester.InitServer(`
+	{
+		admin localhost:2999
+		order esi before basicauth
+		esi
+		http_port 9080
+	}
+	localhost:9080 {
+		respond /my-esi-content/whatever "<h1>FROM DEFAULT HOST</h1>"
+	}
+	domain.com:9080 {
+		route /page {
+			header Content-Type text/html
+			esi {
+				default_host localhost:9080
+			}
+			respond `+"`<esi:include src=\"/my-esi-content/whatever\"/>`"+`
+		}
+	}`, "caddyfile")
+
+	rq, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:9080/page", nil)
+	rq.Host = "domain.com"
+
+	_, _ = tester.AssertResponse(rq, http.StatusOK, "<h1>FROM DEFAULT HOST</h1>")
+}

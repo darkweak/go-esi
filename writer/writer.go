@@ -1,7 +1,10 @@
 package writer
 
 import (
+	"errors"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/darkweak/go-esi/esi"
 )
@@ -16,8 +19,62 @@ type Writer struct {
 	wroteHeader bool
 }
 
+// ErrInvalidBaseURL is returned by ParseBaseURL when the value is not a valid
+// origin.
+var ErrInvalidBaseURL = errors.New("esi: the base URL must be an origin like host[:port] or scheme://host[:port]")
+
+// ParseBaseURL parses an origin to use with WithBaseURL. The scheme is
+// optional and defaults to http, e.g. "my-service.my-namespace.svc.cluster.local"
+// or "https://static.example.com:8443". An empty string returns a nil URL.
+func ParseBaseURL(s string) (*url.URL, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, nil //nolint:nilnil // no base URL configured.
+	}
+
+	if !strings.Contains(s, "://") {
+		s = "http://" + s
+	}
+
+	u, err := url.Parse(s)
+	if err != nil {
+		return nil, errors.Join(ErrInvalidBaseURL, err)
+	}
+
+	if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil ||
+		(u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" {
+		return nil, ErrInvalidBaseURL
+	}
+
+	return &url.URL{Scheme: u.Scheme, Host: u.Host}, nil
+}
+
+// Option configures a Writer.
+type Option func(*options)
+
+type options struct {
+	baseURL *url.URL
+}
+
+// WithBaseURL resolves the relative include URLs (e.g. src="/fragment")
+// against the scheme and host of base instead of the ones of the incoming
+// request. The path of the incoming request is kept, so relative paths
+// (e.g. src="fragment") still resolve from it. The Cookie and Authorization
+// headers are forwarded to base as it becomes the same-origin target. A nil
+// base is ignored.
+func WithBaseURL(base *url.URL) Option {
+	return func(o *options) {
+		o.baseURL = base
+	}
+}
+
 // NewWriter returns a Writer streaming the processed response to rw.
-func NewWriter(rw http.ResponseWriter, rq *http.Request) *Writer {
+func NewWriter(rw http.ResponseWriter, rq *http.Request, opts ...Option) *Writer {
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
+
 	if rq.URL.Scheme == "" {
 		if rq.TLS != nil {
 			rq.URL.Scheme = "https"
@@ -33,8 +90,25 @@ func NewWriter(rw http.ResponseWriter, rq *http.Request) *Writer {
 	return &Writer{
 		rw:     rw,
 		Rq:     rq,
-		stream: esi.NewStream(rw, rq),
+		stream: esi.NewStream(rw, includeRequest(rq, o.baseURL)),
 	}
+}
+
+// includeRequest returns the request the include URLs are resolved against.
+// rq is left untouched since the wrapped handler still serves it.
+func includeRequest(rq *http.Request, base *url.URL) *http.Request {
+	if base == nil {
+		return rq
+	}
+
+	u := *rq.URL
+	u.Scheme = base.Scheme
+	u.Host = base.Host
+
+	r := rq.WithContext(rq.Context())
+	r.URL = &u
+
+	return r
 }
 
 // Header implements http.ResponseWriter.
